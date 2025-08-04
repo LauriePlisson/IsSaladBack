@@ -10,10 +10,10 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var postsRouter = require("./routes/posts");
 
+const app = express();
+
 const fileUpload = require("express-fileupload");
 app.use(fileUpload());
-
-var app = express();
 
 const cors = require("cors");
 app.use(cors());

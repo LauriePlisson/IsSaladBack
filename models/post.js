@@ -11,7 +11,7 @@ const postSchema = mongoose.Schema({
   photoUrl: String,
   ownerPost: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
   date: Date,
-  result: { type: mongoose.Schema.Types.ObjectId, ref: "teams" },
+  result: String,
   description: String,
   like: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
   dislike: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
