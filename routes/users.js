@@ -101,4 +101,8 @@ router.get("/", (req, res) => {
 
 //put modif profile
 
+// router.put("/:username", (req, res) => {
+//   User.updateOne({ token: req.body.token }, { username: req.params.username });
+// });
+
 module.exports = router;
