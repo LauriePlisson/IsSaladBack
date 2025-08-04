@@ -11,9 +11,9 @@ var usersRouter = require("./routes/users");
 var postsRouter = require("./routes/posts");
 var teamsRouter = require("./routes/teams");
 
-const fileUpload = require("express-fileupload");
+const app = express();
 
-var app = express();
+const fileUpload = require("express-fileupload");
 
 const cors = require("cors");
 app.use(cors());
