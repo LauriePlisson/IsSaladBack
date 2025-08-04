@@ -71,7 +71,7 @@ router.post("/signin", (req, res) => {
 
 //suppression compte
 router.delete("/", (req, res) => {
-  User.deleteOne({ username: req.body.username }).then((data) => {
+  User.deleteOne({ token: req.body.token }).then((data) => {
     console.log(data);
     if (data.deletedCount === 1) {
       res.json({ result: true, message: "account deleted" });
@@ -99,10 +99,77 @@ router.get("/", (req, res) => {
     });
 });
 
-//put modif profile
+//put modif username
+router.put("/changeUsername/:username", (req, res) => {
+  if (!checkBody(req.params, ["username"])) {
+    res.json({ result: false, error: "Missing or empty fields" });
+    return;
+  }
+  User.updateOne(
+    { token: req.body.token },
+    { username: req.params.username }
+  ).then((data) => {
+    if (data.modifiedCount > 0) {
+      User.findOne({ token: req.body.token }).then((userdata) => {
+        res.json({ result: true, username: userdata.username });
+      });
+    } else {
+      res.json({ result: false, error: "no modification" });
+    }
+  });
+});
 
-// router.put("/:username", (req, res) => {
-//   User.updateOne({ token: req.body.token }, { username: req.params.username });
-// });
+//put modif description
+router.put("/changeDescription", (req, res) => {
+  User.updateOne(
+    { token: req.body.token },
+    { description: req.body.description }
+  ).then((data) => {
+    if (data.modifiedCount > 0) {
+      User.findOne({ token: req.body.token }).then((userdata) => {
+        res.json({ result: true, data: userdata.description });
+      });
+    } else {
+      res.json({ result: false, error: "no modification" });
+    }
+  });
+});
+
+//put modif avatar
+router.put("/changeAvatar", (req, res) => {
+  User.updateOne({ token: req.body.token }, { avatar: req.body.avatar }).then(
+    (data) => {
+      if (data.modifiedCount > 0) {
+        User.findOne({ token: req.body.token }).then((userdata) => {
+          res.json({ result: true, data: userdata.avatar });
+        });
+      } else {
+        res.json({ result: false, error: "no modification" });
+      }
+    }
+  );
+});
+
+//modif password
+
+router.put("/changePassword", (req, res) => {
+  if (!checkBody(req.body, ["newpassword", "password"])) {
+    res.json({ result: false, error: "Missing or empty fields" });
+    return;
+  }
+
+  User.findOne({ token: req.body.token }).then((data) => {
+    if (data && bcrypt.compareSync(req.body.password, data.password)) {
+      const hash = bcrypt.hashSync(req.body.newpassword, 10);
+      User.updateOne({ token: req.body.token }, { password: hash }).then(
+        (data) => {
+          res.json({ result: true, message: "password Changed" });
+        }
+      );
+    } else {
+      res.json({ result: false, error: "error, wrong password" });
+    }
+  });
+});
 
 module.exports = router;
