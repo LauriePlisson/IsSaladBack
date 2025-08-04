@@ -8,7 +8,7 @@ const userSchema = mongoose.Schema({
   avatar: String,
   description: String,
   team: { type: mongoose.Schema.Types.ObjectId, ref: "teams" },
-  friendsList: [],
+  friendsList: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
 });
 
 const User = mongoose.model("users", userSchema);
