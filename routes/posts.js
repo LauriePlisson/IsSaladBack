@@ -67,8 +67,64 @@ router.post("/createPost", async (req, res) => {
 
     return;
   }
+});
 
-  console.log("etape 2");
+router.get("/getPosts", async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ date: -1 }) // les plus récents en premier
+      .populate("ownerPost", "username"); // récuperation du nom d'utilisateur
+
+    res.json({ result: true, posts });
+  } catch (error) {
+    console.log("Erreur lors de la récupération des posts :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.get("/getPostsByUsername/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Cherche l'utilisateur correspondant au username
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ result: false, error: "Utilisateur non trouvé" });
+    }
+
+    // Récupère les posts de cet utilisateur
+    const posts = await Post.find({ ownerPost: user._id })
+      .sort({ date: -1 })
+      .populate("ownerPost", "username");
+
+    res.json({ result: true, posts });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des posts par username :",
+      error
+    );
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.delete("/deletePost/:postId", async (req, res) => {
+  try {
+    const post = await Post.findOne({ _id: req.params.postId });
+
+    if (!post) {
+      return res.status(404).json({ result: false, error: "Post not found" });
+    }
+
+    await Post.deleteOne({ _id: req.params.postId });
+
+    res.json({ result: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
 });
 
 module.exports = router;
