@@ -6,6 +6,10 @@ const { checkBody } = require("../modules/checkBody");
 const uid2 = require("uid2");
 const bcrypt = require("bcrypt");
 
+const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
+const uniqid = require("uniqid");
+
 // signUp inscription
 router.post("/signup", (req, res) => {
   if (!checkBody(req.body, ["username", "password", "mail"])) {
@@ -23,7 +27,7 @@ router.post("/signup", (req, res) => {
         password: hash,
         token: uid2(32),
         avatar: "",
-        description: "",
+        description: "@" + req.body.username,
         team: null,
         friendsList: [],
       });
@@ -136,9 +140,18 @@ router.put("/changeDescription", (req, res) => {
 });
 
 //put modif avatar
-router.put("/changeAvatar", (req, res) => {
-  User.updateOne({ token: req.body.token }, { avatar: req.body.avatar }).then(
-    (data) => {
+router.put("/changeAvatar", async (req, res) => {
+  const avatarPath = `./tmp/${uniqid()}.jpg`;
+  const resultMove = await req.files.avatarUrl.mv(avatarPath);
+
+  if (!resultMove) {
+    const resultCloudinary = await cloudinary.uploader.upload(avatarPath);
+    fs.unlinkSync(avatarPath);
+
+    User.updateOne(
+      { token: req.body.token },
+      { avatar: resultCloudinary.secure_url }
+    ).then((data) => {
       if (data.modifiedCount > 0) {
         User.findOne({ token: req.body.token }).then((userdata) => {
           res.json({ result: true, data: userdata.avatar });
@@ -146,8 +159,10 @@ router.put("/changeAvatar", (req, res) => {
       } else {
         res.json({ result: false, error: "no modification" });
       }
-    }
-  );
+    });
+  } else {
+    res.json({ result: false, error: "File upload failed" });
+  }
 });
 
 //modif password
@@ -170,6 +185,76 @@ router.put("/changePassword", (req, res) => {
       res.json({ result: false, error: "error, wrong password" });
     }
   });
+});
+
+//faire ajout suppression ami
+router.put("/addFriend", (req, res) => {
+  // if (!checkBody(req.body, ["token", "friendUsername"])) {
+  //   res.json({ result: false, error: "Missing or empty fields" });
+  //   return;
+  // }
+
+  User.findOne({ token: req.body.token }).then((data) => {
+    if (data) {
+      User.findOne({ username: req.body.friendUsername }).then((friendData) => {
+        if (
+          !data.friendsList.some(
+            (elem) => elem.toString() === friendData._id.toString()
+          )
+        ) {
+          User.updateOne(
+            { token: req.body.token },
+            { $addToSet: { friendsList: friendData._id } }
+          ).then(() => {
+            User.findOne({ token: req.body.token }).then((userData) => {
+              res.json({
+                result: true,
+                message: "Friend added",
+                friendList: userData.friendsList,
+              });
+            });
+          });
+        } else {
+          console.log("Friend already exists or not found");
+          User.updateOne(
+            { token: req.body.token },
+            { $pull: { friendsList: friendData._id } }
+          ).then(() => {
+            console.log("Friend removed");
+            User.findOne({ token: req.body.token }).then((userData) => {
+              res.json({
+                result: true,
+                message: "Friend removed",
+                friendList: userData.friendsList,
+              });
+            });
+          });
+        }
+      });
+    }
+  });
+});
+
+//get one user
+router.get("/:username", (req, res) => {
+  User.findOne({ username: req.params.username })
+    .populate("team")
+    .then((data) => {
+      if (data) {
+        res.json({
+          result: true,
+          username: data.username,
+          avatar: data.avatar,
+          description: data.description,
+          team: data.team,
+          numberOfFriends: data.friendsList.length,
+          postsList: data.postsList,
+          numberOfPosts: data.postsList.length,
+        });
+      } else {
+        res.json({ result: false, error: "User not found" });
+      }
+    });
 });
 
 module.exports = router;

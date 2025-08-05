@@ -47,4 +47,6 @@ router.put("/add", (req, res) => {
   });
 });
 
+//suppr personne userlist
+//get one pour avoir une team
 module.exports = router;

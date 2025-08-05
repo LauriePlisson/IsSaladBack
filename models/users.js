@@ -9,6 +9,7 @@ const userSchema = mongoose.Schema({
   description: String,
   team: { type: mongoose.Schema.Types.ObjectId, ref: "teams" },
   friendsList: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
+  postsList: [{ type: mongoose.Schema.Types.ObjectId, ref: "posts" }],
 });
 
 const User = mongoose.model("users", userSchema);
