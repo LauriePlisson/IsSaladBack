@@ -1,72 +1,109 @@
 var express = require("express");
 var router = express.Router();
+require("../models/connection");
 
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const uniqid = require("uniqid");
+const OpenAI = require("openai");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const User = require("../models/users");
 const Post = require("../models/post");
 const { checkBody } = require("../modules/checkBody");
 
 router.post("/createPost", async (req, res) => {
-  //   console.log("Bien arriver sur ma route");
-  if (!checkBody(req.body, ["result", "date"])) {
-    console.log("go");
-    res.json({ result: false, error: "Already have data" });
-    return;
-  }
+  try {
+    let prompt =
+      'Sandwiches are any food that is contained in itself OR in an bread-like containment. Soups are any food that is completely engulfed in broth/liquid. Everything else is a salad. With that in mind, what is this food. Your reponse must be "soup", "salad" or "sandwich" and nothing else.';
+    // Try to make this shorter from here...
+    if (!checkBody(req.body, ["date"]))
+      return res
+        .status(400)
+        .json({ result: false, error: "Missing or empty fields" });
+    if (!req.files.photoUrl)
+      return res.status(400).json({ result: false, error: "No file uploaded" });
+    const user = await User.findOne({ token: req.body.token });
+    if (!user)
+      return res.status(400).json({ result: false, error: "User not found" });
+    const photoPath = `./tmp/${uniqid()}.jpg`;
+    const resultMove = await req.files.photoUrl.mv(photoPath);
+    if (resultMove)
+      return res
+        .status(500)
+        .json({
+          result: false,
+          error: "File upload error: " + resultMove.message,
+        });
+    const fileBuffer = fs.readFileSync(photoPath);
+    if (!fileBuffer)
+      return res
+        .status(400)
+        .json({ result: false, error: "File buffer is empty" });
+    // ...to here
 
-  if (!req.body.token) {
-    console.log("Token manquant");
-    res.json({ result: false, error: "Token is required" });
-    return;
-  }
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: "IsSalad/posts" },
+      async (error, result) => {
+        if (error) {
+          fs.unlinkSync(photoPath); // Delete temporary file after processing
+          return res
+            .status(500)
+            .json({
+              result: false,
+              error: "Cloudinary error :" + error.message,
+            });
+        }
+        const imageUrl = result.secure_url;
 
-  if (!req.files.photoUrl) {
-    console.log("Image manquante");
-    res.json({ result: false, error: "No file uploaded" });
-    return;
-  }
+        try {
+          // Call OpenAI Vision
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: imageUrl } },
+                ],
+              },
+            ],
+          });
+          const aiResult = response.choices[0].message.content;
 
-  const user = await User.findOne({ token: req.body.token });
-  if (!user) {
-    console.log("Utilisateur introuvable");
-    res.json({ result: false, error: "User not found" });
-    return;
-  }
-
-  const photoPath = `./tmp/${uniqid()}.jpg`;
-  const resultMove = await req.files.photoUrl.mv(photoPath);
-
-  if (!resultMove) {
-    const resultCloudinary = await cloudinary.uploader.upload(photoPath);
-    fs.unlinkSync(photoPath);
-
-    const newPost = new Post({
-      photoUrl: resultCloudinary.secure_url,
-      ownerPost: user._id,
-      date: req.body.date,
-      result: req.body.result,
-      description: req.body.description || "",
-      like: [],
-      dislike: [],
-      comments: [],
-    });
-
-    try {
-      const savedPost = await newPost.save();
-
-      // Ajoute le postId dans postsList du user
-      user.postsList.push(savedPost._id);
-      await user.save();
-
-      console.log("Post enregistré et ajouté à postsList");
-      res.status(200).json({ result: true, post: savedPost });
-    } catch (err) {
-      console.log("Erreur enregistrement :", err);
-      res.status(500).json({ result: false, error: "Database error" });
-    }
+          // create new post in the database
+          const newPost = new Post({
+            photoUrl: imageUrl,
+            ownerPost: user._id,
+            date: req.body.date,
+            result: aiResult,
+            description: req.body.description || "",
+            like: [],
+            dislike: [],
+            comments: [],
+          });
+          await newPost.save();
+          res.status(200).json({ result: true, post: newPost });
+        } catch (err) {
+          fs.unlinkSync(photoPath); // Delete temporary file after processing
+          res
+            .status(500)
+            .json({ result: false, error: "Database error" + err.message });
+        } finally {
+          fs.unlinkSync(photoPath); // Delete temporary file after processing
+        }
+      }
+    );
+    // Pipe file buffer into Cloudinary upload stream
+    uploadStream.end(fileBuffer);
+  } catch (err) {
+    res
+      .status(500)
+      .json({
+        result: false,
+        error: "Error in /createPost route: " + err.message,
+      });
   }
 });
 

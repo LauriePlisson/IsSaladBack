@@ -45,22 +45,49 @@ router.put("/add", (req, res) => {
           { name: data.team.name },
           { $pull: { userList: data._id } }
         ).then(() => {
-          res.json({ error: "User left team " + data.team.name });
-          return;
+          // console.log("User left team " + data.team.name);
         });
       }
 
       Team.updateOne(
         { name: req.body.team },
-        { $addToSet: { userList: [data._id.toString()] } }
+        { $addToSet: { userList: data._id } }
       ).then((teamdata) => {
-        Team.find().then((teamsdata) => {
-          res.json({ result: true, message: "user added", team: teamsdata });
+        Team.findOne({ name: req.body.team }).then((teamInfo) => {
+          // console.log(teamInfo);
+          User.updateOne(
+            { token: req.body.token },
+            { team: teamInfo._id }
+          ).then(() => {
+            Team.find().then((teamsdata) => {
+              res.json({
+                result: true,
+                message: "user added",
+                team: teamsdata,
+              });
+            });
+          });
         });
       });
     });
 });
 
-//suppr personne userlist
 //get one pour avoir une team
+router.get("/:name", (req, res) => {
+  Team.findOne({ name: req.params.name }).then((data) => {
+    if (data) {
+      res.json({
+        result: true,
+        name: data.name,
+        icon: data.icon,
+        color: data.color,
+        description: data.description,
+        userList: data.userList,
+        numberOfUsers: data.userList.length,
+      });
+    } else {
+      res.json({ result: false, error: "Team not found" });
+    }
+  });
+});
 module.exports = router;
