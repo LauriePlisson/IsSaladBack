@@ -18,24 +18,18 @@ router.post("/createPost", async (req, res) => {
     // Try to make this shorter from here...
     if (!checkBody(req.body, ["date"]))
       return res.status(400).json({ result: false, error: "Missing or empty fields" });
-  console.log(1);
     if (!req.files.photoUrl) 
       return res.status(400).json({ result: false, error: "No file uploaded" });
-  console.log(2);
     const user = await User.findOne({ token: req.body.token });
     if (!user)
       return res.status(400).json({ result: false, error: "User not found" });
-  console.log(3);
     const photoPath = `./tmp/${uniqid()}.jpg`;
-  console.log(4);
     const resultMove = await req.files.photoUrl.mv(photoPath);
     if (resultMove)
       return res.status(500).json({ result: false, error: "File upload error: " + resultMove.message });
-  console.log(5);
     const fileBuffer = fs.readFileSync(photoPath);
     if (!fileBuffer)
       return res.status(400).json({ result: false, error: "File buffer is empty" });
-  console.log(6);
     // ...to here
 
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -43,15 +37,12 @@ router.post("/createPost", async (req, res) => {
       async (error, result) => {
         if (error) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
-        console.error(6-1, error);
           return res.status(500).json({ result: false, error: "Cloudinary error :" + error.message });
         }
         const imageUrl = result.secure_url;
-      console.log(6-2, imageUrl);
 
         try {
           // Call OpenAI Vision
-        console.log(7);
           const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
@@ -65,7 +56,6 @@ router.post("/createPost", async (req, res) => {
             ],
           });
           const aiResult = response.choices[0].message.content;
-        console.log(8, aiResult);
 
           // create new post in the database
           const newPost = new Post({
@@ -80,9 +70,7 @@ router.post("/createPost", async (req, res) => {
           });
           await newPost.save();
           res.status(200).json({ result: true, post: newPost });
-      console.log(9, "Post created successfully");
         } catch (err) {
-      console.error(10, "OpenAI/save error: ", err);
           fs.unlinkSync(photoPath); // Delete temporary file after processing
           res.status(500).json({ result: false, error: "Database error" + err.message });
         } finally {
@@ -91,7 +79,6 @@ router.post("/createPost", async (req, res) => {
       });
     // Pipe file buffer into Cloudinary upload stream
     uploadStream.end(fileBuffer);
-  console.log(11, "Upload stream ended");
   } catch (err) {
     res.status(500).json({ result: false, error: "Error in /createPost route: " + err.message });
   }
