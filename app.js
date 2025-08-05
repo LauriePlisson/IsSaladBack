@@ -1,6 +1,4 @@
 require("dotenv").config();
-require("./models/connection");
-
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
@@ -10,10 +8,10 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var postsRouter = require("./routes/posts");
 var teamsRouter = require("./routes/teams");
-
-const app = express();
+require("./models/connection");
 
 const fileUpload = require("express-fileupload");
+var app = express();
 
 const cors = require("cors");
 app.use(cors());
