@@ -110,4 +110,21 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
   }
 });
 
+router.delete("/deletePost/:postId", async (req, res) => {
+  try {
+    const post = await Post.findOne({ _id: req.params.postId });
+
+    if (!post) {
+      return res.status(404).json({ result: false, error: "Post not found" });
+    }
+
+    await Post.deleteOne({ _id: req.params.postId });
+
+    res.json({ result: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
 module.exports = router;
