@@ -1,6 +1,6 @@
 var express = require("express");
 var router = express.Router();
-require('../models/connection');
+require("../models/connection");
 
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
@@ -13,12 +13,15 @@ const Post = require("../models/post");
 const { checkBody } = require("../modules/checkBody");
 
 router.post("/createPost", async (req, res) => {
-try {
-    let prompt = 'Sandwiches are any food that is contained in itself OR in an bread-like containment. Soups are any food that is completely engulfed in broth/liquid. Everything else is a salad. With that in mind, what is this food. Your reponse must be "soup", "salad" or "sandwich" and nothing else.';
+  try {
+    let prompt =
+      'Sandwiches are any food that is contained in itself OR in an bread-like containment. Soups are any food that is completely engulfed in broth/liquid. Everything else is a salad. With that in mind, what is this food. Your reponse must be "soup", "salad" or "sandwich" and nothing else.';
     // Try to make this shorter from here...
     if (!checkBody(req.body, ["date"]))
-      return res.status(400).json({ result: false, error: "Missing or empty fields" });
-    if (!req.files.photoUrl) 
+      return res
+        .status(400)
+        .json({ result: false, error: "Missing or empty fields" });
+    if (!req.files.photoUrl)
       return res.status(400).json({ result: false, error: "No file uploaded" });
     const user = await User.findOne({ token: req.body.token });
     if (!user)
@@ -26,10 +29,17 @@ try {
     const photoPath = `./tmp/${uniqid()}.jpg`;
     const resultMove = await req.files.photoUrl.mv(photoPath);
     if (resultMove)
-      return res.status(500).json({ result: false, error: "File upload error: " + resultMove.message });
+      return res
+        .status(500)
+        .json({
+          result: false,
+          error: "File upload error: " + resultMove.message,
+        });
     const fileBuffer = fs.readFileSync(photoPath);
     if (!fileBuffer)
-      return res.status(400).json({ result: false, error: "File buffer is empty" });
+      return res
+        .status(400)
+        .json({ result: false, error: "File buffer is empty" });
     // ...to here
 
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -37,7 +47,12 @@ try {
       async (error, result) => {
         if (error) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
-          return res.status(500).json({ result: false, error: "Cloudinary error :" + error.message });
+          return res
+            .status(500)
+            .json({
+              result: false,
+              error: "Cloudinary error :" + error.message,
+            });
         }
         const imageUrl = result.secure_url;
 
@@ -72,15 +87,23 @@ try {
           res.status(200).json({ result: true, post: newPost });
         } catch (err) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
-          res.status(500).json({ result: false, error: "Database error" + err.message });
+          res
+            .status(500)
+            .json({ result: false, error: "Database error" + err.message });
         } finally {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
         }
-      });
+      }
+    );
     // Pipe file buffer into Cloudinary upload stream
     uploadStream.end(fileBuffer);
   } catch (err) {
-    res.status(500).json({ result: false, error: "Error in /createPost route: " + err.message });
+    res
+      .status(500)
+      .json({
+        result: false,
+        error: "Error in /createPost route: " + err.message,
+      });
   }
 });
 
@@ -141,6 +164,5 @@ router.delete("/deletePost/:postId", async (req, res) => {
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
-
 
 module.exports = router;
