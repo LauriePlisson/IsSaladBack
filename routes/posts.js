@@ -29,12 +29,10 @@ router.post("/createPost", async (req, res) => {
     const photoPath = `./tmp/${uniqid()}.jpg`;
     const resultMove = await req.files.photoUrl.mv(photoPath);
     if (resultMove)
-      return res
-        .status(500)
-        .json({
-          result: false,
-          error: "File upload error: " + resultMove.message,
-        });
+      return res.status(500).json({
+        result: false,
+        error: "File upload error: " + resultMove.message,
+      });
     const fileBuffer = fs.readFileSync(photoPath);
     if (!fileBuffer)
       return res
@@ -47,12 +45,10 @@ router.post("/createPost", async (req, res) => {
       async (error, result) => {
         if (error) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
-          return res
-            .status(500)
-            .json({
-              result: false,
-              error: "Cloudinary error :" + error.message,
-            });
+          return res.status(500).json({
+            result: false,
+            error: "Cloudinary error :" + error.message,
+          });
         }
         const imageUrl = result.secure_url;
 
@@ -98,12 +94,10 @@ router.post("/createPost", async (req, res) => {
     // Pipe file buffer into Cloudinary upload stream
     uploadStream.end(fileBuffer);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        result: false,
-        error: "Error in /createPost route: " + err.message,
-      });
+    res.status(500).json({
+      result: false,
+      error: "Error in /createPost route: " + err.message,
+    });
   }
 });
 
@@ -148,19 +142,132 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
   }
 });
 
-router.delete("/deletePost/:postId", async (req, res) => {
+router.delete("/deletePost", async (req, res) => {
   try {
-    const post = await Post.findOne({ _id: req.params.postId });
+    const { token, photoUrl } = req.body;
 
-    if (!post) {
+    if (!token || !photoUrl) {
+      return res
+        .status(400)
+        .json({ result: false, error: "Token or photoUrl missing" });
+    }
+
+    // Trouver le user et supprimer l'id du post dans postsList
+    const postToDelete = await Post.findOne({ photoUrl: req.body.photoUrl });
+    const user = await User.findOne({ token: req.body.token });
+    if (user) {
+      await User.updateOne(
+        { token: req.body.token },
+        { $pull: { postsList: postToDelete._id } }
+      );
+      console.log("Post removed from user's postsList");
+    }
+
+    // Supprimer le post
+    await Post.deleteOne({ photoUrl: req.body.photoUrl });
+
+    res.json({
+      result: true,
+      message: "Post deleted and removed from postsList",
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.put("/updateDescription", async (req, res) => {
+  try {
+    const { token, photoUrl, description } = req.body;
+
+    if (!token || !photoUrl || !description) {
+      return res.status(400).json({ result: false, error: "Missing fields" });
+    }
+
+    const updated = await Post.updateOne(
+      { photoUrl },
+      { $set: { description } }
+    );
+
+    if (updated.modifiedCount === 0) {
       return res.status(404).json({ result: false, error: "Post not found" });
     }
 
-    await Post.deleteOne({ _id: req.params.postId });
-
-    res.json({ result: true, message: "Post deleted successfully" });
+    res.json({ result: true, message: "Description updated" });
   } catch (error) {
-    console.error("Erreur lors de la suppression :", error);
+    console.error("Error:", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.put("/likePost", async (req, res) => {
+  try {
+    const { token, photoUrl } = req.body;
+
+    if (!token || !photoUrl) {
+      return res
+        .status(400)
+        .json({ result: false, error: "Token or photoUrl missing" });
+    }
+
+    // Étape 1 : Trouver l'utilisateur
+    const user = await User.findOne({ token });
+
+    if (!user) {
+      return res.status(404).json({ result: false, error: "User not found" });
+    }
+
+    console.log("User found:", user._id);
+
+    // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
+    const update = await Post.updateOne(
+      { photoUrl },
+      { $addToSet: { like: user._id } }
+    );
+
+    res.json({
+      result: true,
+      message: "Post liked",
+      update,
+    });
+  } catch (error) {
+    console.error("Like error:", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.put("/dislikePost", async (req, res) => {
+  try {
+    const { token, photoUrl } = req.body;
+
+    if (!token || !photoUrl) {
+      return res
+        .status(400)
+        .json({ result: false, error: "Token or photoUrl missing" });
+    }
+
+    // Étape 1 : Trouver l'utilisateur
+    const user = await User.findOne({ token });
+
+    if (!user) {
+      return res.status(404).json({ result: false, error: "User not found" });
+    }
+
+    console.log("User found:", user._id);
+
+    // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
+    const update = await Post.updateOne(
+      { photoUrl },
+      { $addToSet: { dislike: user._id } }
+    );
+
+    res.json({
+      result: true,
+      message: "Post liked",
+      update,
+    });
+  } catch (error) {
+    console.error("Like error:", error);
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
