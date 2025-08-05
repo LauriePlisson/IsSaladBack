@@ -248,6 +248,7 @@ router.get("/:username", (req, res) => {
           avatar: data.avatar,
           description: data.description,
           team: data.team.name,
+          friendList: data.friendsList,
           numberOfFriends: data.friendsList.length,
           postsList: data.postsList,
           numberOfPosts: data.postsList.length,
