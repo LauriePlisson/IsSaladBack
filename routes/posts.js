@@ -67,8 +67,19 @@ router.post("/createPost", async (req, res) => {
 
     return;
   }
+});
 
-  console.log("etape 2");
+router.get("/getPosts", async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ date: -1 }) // les plus récents en premier
+      .populate("ownerPost", "username"); // récuperation du nom d'utilisateur
+
+    res.json({ result: true, posts });
+  } catch (error) {
+    console.log("Erreur lors de la récupération des posts :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
 });
 
 module.exports = router;
