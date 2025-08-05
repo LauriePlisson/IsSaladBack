@@ -82,4 +82,32 @@ router.get("/getPosts", async (req, res) => {
   }
 });
 
+router.get("/getPostsByUsername/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Cherche l'utilisateur correspondant au username
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ result: false, error: "Utilisateur non trouvé" });
+    }
+
+    // Récupère les posts de cet utilisateur
+    const posts = await Post.find({ ownerPost: user._id })
+      .sort({ date: -1 })
+      .populate("ownerPost", "username");
+
+    res.json({ result: true, posts });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des posts par username :",
+      error
+    );
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
 module.exports = router;
