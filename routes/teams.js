@@ -34,17 +34,31 @@ router.get("/", (req, res) => {
 });
 
 //put pour update userList AFINIR!!!!!!
+
 router.put("/add", (req, res) => {
-  User.findOne({ token: req.body.token }).then((data) => {
-    Team.updateOne(
-      { name: req.body.team },
-      { $addToSet: { userList: [data._id.toString()] } }
-    ).then((teamdata) => {
-      Team.find().then((teamsdata) => {
-        res.json({ result: true, message: "user added", team: teamsdata });
+  User.findOne({ token: req.body.token })
+    .populate("team")
+    .then((data) => {
+      //verifier si user existe dans une autre team et le supprimer de cette team
+      if (data.team) {
+        Team.updateOne(
+          { name: data.team.name },
+          { $pull: { userList: data._id } }
+        ).then(() => {
+          res.json({ error: "User left team " + data.team.name });
+          return;
+        });
+      }
+
+      Team.updateOne(
+        { name: req.body.team },
+        { $addToSet: { userList: [data._id.toString()] } }
+      ).then((teamdata) => {
+        Team.find().then((teamsdata) => {
+          res.json({ result: true, message: "user added", team: teamsdata });
+        });
       });
     });
-  });
 });
 
 //suppr personne userlist

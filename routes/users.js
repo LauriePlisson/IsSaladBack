@@ -30,6 +30,7 @@ router.post("/signup", (req, res) => {
         description: "@" + req.body.username,
         team: null,
         friendsList: [],
+        postsList: [],
       });
 
       newUser.save().then((data) => {
@@ -96,7 +97,7 @@ router.get("/", (req, res) => {
           username: user.username,
           avatar: user.avatar,
           description: user.description,
-          team: user.team,
+          team: user.team.name,
         });
       }
       res.json({ result: true, users: users });
@@ -246,7 +247,7 @@ router.get("/:username", (req, res) => {
           username: data.username,
           avatar: data.avatar,
           description: data.description,
-          team: data.team,
+          team: data.team.name,
           numberOfFriends: data.friendsList.length,
           postsList: data.postsList,
           numberOfPosts: data.postsList.length,
