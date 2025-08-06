@@ -13,14 +13,19 @@ const Post = require("../models/post");
 const { checkBody } = require("../modules/checkBody");
 
 router.post("/createPost", async (req, res) => {
+  console.log("MON IMAGE LA", req.body);
+
   try {
     let prompt =
       'Sandwiches are any food that is contained in itself OR in an bread-like containment. Soups are any food that is completely engulfed in broth/liquid. Everything else is a salad. With that in mind, what is this food. Your reponse must be "soup", "salad" or "sandwich" and nothing else.';
     // Try to make this shorter from here...
-    if (!checkBody(req.body, ["date"]))
+    if (!checkBody(req.body, ["token"])) {
+      console.log("Missing date in request body");
+
       return res
         .status(400)
         .json({ result: false, error: "Missing or empty fields" });
+    }
     if (!req.files.photoUrl)
       return res.status(400).json({ result: false, error: "No file uploaded" });
     const user = await User.findOne({ token: req.body.token });
@@ -29,12 +34,10 @@ router.post("/createPost", async (req, res) => {
     const photoPath = `./tmp/${uniqid()}.jpg`;
     const resultMove = await req.files.photoUrl.mv(photoPath);
     if (resultMove)
-      return res
-        .status(500)
-        .json({
-          result: false,
-          error: "File upload error: " + resultMove.message,
-        });
+      return res.status(500).json({
+        result: false,
+        error: "File upload error: " + resultMove.message,
+      });
     const fileBuffer = fs.readFileSync(photoPath);
     if (!fileBuffer)
       return res
@@ -47,14 +50,13 @@ router.post("/createPost", async (req, res) => {
       async (error, result) => {
         if (error) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
-          return res
-            .status(500)
-            .json({
-              result: false,
-              error: "Cloudinary error :" + error.message,
-            });
+          return res.status(500).json({
+            result: false,
+            error: "Cloudinary error :" + error.message,
+          });
         }
         const imageUrl = result.secure_url;
+        console.log("Image uploaded to Cloudinary:", imageUrl);
 
         try {
           // Call OpenAI Vision
@@ -76,7 +78,7 @@ router.post("/createPost", async (req, res) => {
           const newPost = new Post({
             photoUrl: imageUrl,
             ownerPost: user._id,
-            date: req.body.date,
+            date: new Date(),
             result: aiResult,
             description: req.body.description || "",
             like: [],
@@ -90,20 +92,19 @@ router.post("/createPost", async (req, res) => {
           res
             .status(500)
             .json({ result: false, error: "Database error" + err.message });
-        } finally {
-          fs.unlinkSync(photoPath); // Delete temporary file after processing
         }
+        // finally {
+        //   fs.unlinkSync(photoPath); // Delete temporary file after processing
+        // }
       }
     );
     // Pipe file buffer into Cloudinary upload stream
     uploadStream.end(fileBuffer);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        result: false,
-        error: "Error in /createPost route: " + err.message,
-      });
+    res.status(500).json({
+      result: false,
+      error: "Error in /createPost route: " + err.message,
+    });
   }
 });
 
