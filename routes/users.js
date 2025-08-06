@@ -97,7 +97,7 @@ router.get("/", (req, res) => {
           username: user.username,
           avatar: user.avatar,
           description: user.description,
-          team: user.team.name,
+          team: user.team,
         });
       }
       res.json({ result: true, users: users });
@@ -238,8 +238,10 @@ router.put("/addFriend", (req, res) => {
 
 //get one user
 router.get("/:username", (req, res) => {
+  console.log("Fetching user:", req.params.username);
   User.findOne({ username: req.params.username })
     .populate("team")
+    .populate("postsList")
     .then((data) => {
       if (data) {
         res.json({
@@ -247,7 +249,7 @@ router.get("/:username", (req, res) => {
           username: data.username,
           avatar: data.avatar,
           description: data.description,
-          team: data.team.name,
+          team: data.team,
           friendList: data.friendsList,
           numberOfFriends: data.friendsList.length,
           postsList: data.postsList,
