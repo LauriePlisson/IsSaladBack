@@ -21,19 +21,26 @@ router.post("/createPost", async (req, res) => {
       return res
         .status(400)
         .json({ result: false, error: "Missing or empty fields" });
+
     if (!req.files.photoUrl)
       return res.status(400).json({ result: false, error: "No file uploaded" });
+
     const user = await User.findOne({ token: req.body.token });
+
     if (!user)
       return res.status(400).json({ result: false, error: "User not found" });
+
     const photoPath = `./tmp/${uniqid()}.jpg`;
     const resultMove = await req.files.photoUrl.mv(photoPath);
+
     if (resultMove)
       return res.status(500).json({
         result: false,
         error: "File upload error: " + resultMove.message,
       });
+
     const fileBuffer = fs.readFileSync(photoPath);
+
     if (!fileBuffer)
       return res
         .status(400)
