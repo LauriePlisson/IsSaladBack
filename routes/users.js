@@ -63,7 +63,7 @@ router.post("/signin", (req, res) => {
                 friendsList: finalData.friendsList,
                 avatar: finalData.avatar,
                 description: finalData.description,
-                team: finalData.team,
+                team: finalData.team.name,
               });
             });
         }
@@ -240,6 +240,7 @@ router.put("/addFriend", (req, res) => {
 router.get("/:username", (req, res) => {
   User.findOne({ username: req.params.username })
     .populate("team")
+    .populate("postsList")
     .then((data) => {
       if (data) {
         res.json({
