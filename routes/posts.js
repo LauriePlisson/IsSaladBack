@@ -91,6 +91,8 @@ router.post("/createPost", async (req, res) => {
             comments: [],
           });
           await newPost.save();
+          user.postsList.push(newPost._id);
+          await user.save();
           res.status(200).json({ result: true, post: newPost });
         } catch (err) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
