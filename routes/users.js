@@ -187,7 +187,9 @@ router.put("/changeAvatar", async (req, res) => {
     const avatarPath = `./tmp/${uniqid()}.jpg`;
     const resultMove = await req.files.avatar.mv(avatarPath);
     if (!resultMove) {
-      const resultCloudinary = await cloudinary.uploader.upload(avatarPath);
+      const resultCloudinary = await cloudinary.uploader.upload(avatarPath, {
+        folder: "IsSalad/avatars",
+      });
       // console.log("Cloudinary upload result:", resultCloudinary);
       fs.unlinkSync(avatarPath);
 
