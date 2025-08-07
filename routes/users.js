@@ -89,10 +89,12 @@ router.post("/signin", (req, res) => {
 router.delete("/", (req, res) => {
   try {
     User.deleteOne({ token: req.body.token }).then((data) => {
-      // console.log(data);
+      console.log(data);
       if (data.deletedCount === 1) {
+        console.log("Account deleted successfully");
         res.json({ result: true, message: "account deleted" });
       } else {
+        console.log("Error deleting account");
         res.json({ result: false, error: "error can not delete account" });
       }
     });
@@ -102,12 +104,14 @@ router.delete("/", (req, res) => {
       error: "An error occurred while deleting the account",
       errorDetails: error.message,
     });
+    console.error("Error during account deletion:", error);
   }
 });
 
 //get all users
 router.get("/", (req, res) => {
   try {
+    console.log("Fetching all users");
     User.find()
       .populate("team")
       .then((data) => {
@@ -257,6 +261,7 @@ router.put("/addFriend", (req, res) => {
       if (data) {
         User.findOne({ username: req.body.friendUsername }).then(
           (friendData) => {
+            console.log("Friend data:", friendData);
             if (
               !data.friendsList.some(
                 (elem) => elem.toString() === friendData._id.toString()
