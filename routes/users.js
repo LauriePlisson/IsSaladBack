@@ -59,8 +59,10 @@ router.post("/signin", (req, res) => {
           { token: uid2(32) }
         ).then((uptdateData) => {
           User.findOne({ username: req.body.username })
-            .populate("team")
+            .populate((path = "team"), (select = "name icon"))
+            .populate((path = "friendsList"), (select = "username avatar team"))
             .then((finalData) => {
+              console.log("User signed in:", finalData.username);
               res.json({
                 result: true,
                 username: finalData.username,
@@ -73,10 +75,12 @@ router.post("/signin", (req, res) => {
             });
         });
       } else {
+        console.log("User not found or wrong password");
         res.json({ result: false, error: "User not found or wrong password" });
       }
     });
   } catch (error) {
+    console.error("Error during sign-in:", error);
     res.json({
       result: false,
       error: "An error occurred during sign-in",
@@ -271,13 +275,18 @@ router.put("/addFriend", (req, res) => {
                 { token: req.body.token },
                 { $addToSet: { friendsList: friendData._id } }
               ).then(() => {
-                User.findOne({ token: req.body.token }).then((userData) => {
-                  res.json({
-                    result: true,
-                    message: "Friend added",
-                    friendList: userData.friendsList,
+                User.findOne({ token: req.body.token })
+                  .populate(
+                    (path = "friendsList"),
+                    (select = "username avatar team")
+                  )
+                  .then((userData) => {
+                    res.json({
+                      result: true,
+                      message: "Friend added",
+                      friendList: userData.friendsList,
+                    });
                   });
-                });
               });
             } else {
               console.log("Friend already exists or not found");
@@ -286,13 +295,18 @@ router.put("/addFriend", (req, res) => {
                 { $pull: { friendsList: friendData._id } }
               ).then(() => {
                 console.log("Friend removed");
-                User.findOne({ token: req.body.token }).then((userData) => {
-                  res.json({
-                    result: true,
-                    message: "Friend removed",
-                    friendList: userData.friendsList,
+                User.findOne({ token: req.body.token })
+                  .populate(
+                    (path = "friendsList"),
+                    (select = "username avatar team")
+                  )
+                  .then((userData) => {
+                    res.json({
+                      result: true,
+                      message: "Friend removed",
+                      friendList: userData.friendsList,
+                    });
                   });
-                });
               });
             }
           }
