@@ -286,4 +286,26 @@ router.put("/dislikePost", async (req, res) => {
   }
 });
 
+router.delete("/deleteAllFromOne", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ result: false, error: "Token missing" });
+    }
+
+    const user = await User.findOne({ token });
+
+    await Post.deleteMany({ ownerPost: user._id });
+
+    res.json({
+      result: true,
+      message: "Posts deleted",
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
 module.exports = router;
