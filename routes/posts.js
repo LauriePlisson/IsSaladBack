@@ -120,8 +120,23 @@ router.get("/getPosts", async (req, res) => {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
       .populate("ownerPost", {"username": 1, "avatar": 1}); // récuperation du nom d'utilisateur
-
-    res.json({ result: true, posts });
+    // check user.token in like/dislike arrays and return boolean and like/dislike count
+    const userToken = req.headers.authorization?.split(" ")[1] || null;
+    console.log("User token:", userToken);
+    const user = await User.findOne({ token: userToken });
+    console.log("User found:", user._id.toString());
+    const postsWithUserInfo = posts.map(post => {
+      const userHasLiked = post.like.includes(user._id.toString());
+      const userHasDisliked = post.dislike.includes(user._id.toString());
+      return {
+        ...post.toObject(),
+        userHasLiked,
+        userHasDisliked,
+        likeCount: post.like.length,
+        dislikeCount: post.dislike.length
+      };
+    });
+    res.json({ result: true, posts: postsWithUserInfo });
   } catch (error) {
     console.log("Erreur lors de la récupération des posts :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
