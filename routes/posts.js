@@ -122,9 +122,7 @@ router.get("/getPosts", async (req, res) => {
       .populate("ownerPost", {"username": 1, "avatar": 1}); // récuperation du nom d'utilisateur
     // check user.token in like/dislike arrays and return boolean and like/dislike count
     const userToken = req.headers.authorization?.split(" ")[1] || null;
-    console.log("User token:", userToken);
     const user = await User.findOne({ token: userToken });
-    console.log("User found:", user._id.toString());
     const postsWithUserInfo = posts.map(post => {
       const userHasLiked = post.like.includes(user._id.toString());
       const userHasDisliked = post.dislike.includes(user._id.toString());
@@ -249,15 +247,27 @@ router.put("/likePost", async (req, res) => {
     console.log("User found:", user._id);
 
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
-    const update = await Post.updateOne(
-      { photoUrl },
-      { $addToSet: { like: user._id } }
-    );
+    const post = await Post.findOne({ photoUrl });
+
+    if (post.like.some((e) => e.equals(user._id))) {
+      // Si je trouve l'id dans like, je l'enlève
+      const removeIdToLikes = await Post.updateOne(
+        { photoUrl },
+        { $pull: { like: user._id } }
+      );
+    } else {
+      if(post.dislike.some((e) => e.equals(user._id))) {
+        const removeIdToDislikes = await Post.updateOne({photoUrl}, { $pull: { dislike: user._id } });
+      }
+      const addIdToLikes = await Post.updateOne(
+        { photoUrl },
+        { $addToSet: { like: user._id } }
+      );
+    }
 
     res.json({
       result: true,
       message: "Post liked",
-      update,
     });
   } catch (error) {
     console.error("Like error:", error);
@@ -294,18 +304,20 @@ router.put("/dislikePost", async (req, res) => {
         { $pull: { dislike: user._id } }
       );
     } else {
+      if(post.like.some((e) => e.equals(user._id))) {
+        const removeIdToLikes = await Post.updateOne({photoUrl}, { $pull: { like: user._id } });
+      }
       const addIdToDislikes = await Post.updateOne(
-        { photoUrl },
-        { $addToSet: { dislike: user._id } }
-      );
-    }
+      { photoUrl },
+      { $addToSet: { dislike: user._id } }
+    )};
 
     res.json({
       result: true,
-      message: "Post liked",
+      message: "Post disliked",
     });
   } catch (error) {
-    console.error("Like error:", error);
+    console.error("Dislike error:", error);
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
