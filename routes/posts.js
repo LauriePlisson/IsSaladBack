@@ -269,16 +269,25 @@ router.put("/dislikePost", async (req, res) => {
 
     console.log("User found:", user._id);
 
+    const post = await Post.findOne({ photoUrl });
+
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
-    const update = await Post.updateOne(
-      { photoUrl },
-      { $addToSet: { dislike: user._id } }
-    );
+    if (post.dislike.some((e) => e.equals(user._id))) {
+      // Si je trouve l'id dans dislike, je l'enlève
+      const removeIdToDislikes = await Post.updateOne(
+        { photoUrl },
+        { $pull: { dislike: user._id } }
+      );
+    } else {
+      const addIdToDislikes = await Post.updateOne(
+        { photoUrl },
+        { $addToSet: { dislike: user._id } }
+      );
+    }
 
     res.json({
       result: true,
       message: "Post liked",
-      update,
     });
   } catch (error) {
     console.error("Like error:", error);
