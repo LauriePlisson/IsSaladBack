@@ -119,7 +119,16 @@ router.get("/getPosts", async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
-      .populate("ownerPost", "username"); // récuperation du nom d'utilisateur
+      .populate("ownerPost", "username") // récuperation du nom d'utilisateur
+      .populate("comments.ownerComment", "username");
+
+    posts.forEach((elem) => {
+      if (Array.isArray(elem.comments)) {
+        elem.comments.sort(
+          (first, last) => new Date(first.date) - new Date(last.date)
+        );
+      }
+    });
 
     res.json({ result: true, posts });
   } catch (error) {
@@ -144,7 +153,16 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
     // Récupère les posts de cet utilisateur
     const posts = await Post.find({ ownerPost: user._id })
       .sort({ date: -1 })
-      .populate("ownerPost", "username");
+      .populate("ownerPost", "username")
+      .populate("comments.ownerComment", "username");
+
+    posts.forEach((elem) => {
+      if (Array.isArray(elem.comments)) {
+        elem.comments.sort(
+          (first, last) => new Date(first.date) - new Date(last.date)
+        );
+      }
+    });
 
     res.json({ result: true, posts });
   } catch (error) {
@@ -233,16 +251,25 @@ router.put("/likePost", async (req, res) => {
 
     console.log("User found:", user._id);
 
+    const post = await Post.findOne({ photoUrl });
+
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
-    const update = await Post.updateOne(
-      { photoUrl },
-      { $addToSet: { like: user._id } }
-    );
+    if (post.like.some((e) => e.equals(user._id))) {
+      // Si je trouve l'id dans dislike, je l'enlève
+      const removeIdToDislikes = await Post.updateOne(
+        { photoUrl },
+        { $pull: { like: user._id } }
+      );
+    } else {
+      const addIdToDislikes = await Post.updateOne(
+        { photoUrl },
+        { $addToSet: { like: user._id } }
+      );
+    }
 
     res.json({
       result: true,
       message: "Post liked",
-      update,
     });
   } catch (error) {
     console.error("Like error:", error);
@@ -287,10 +314,45 @@ router.put("/dislikePost", async (req, res) => {
 
     res.json({
       result: true,
-      message: "Post liked",
+      message: "Post Unliked",
     });
   } catch (error) {
     console.error("Like error:", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.post("/addComment", async (req, res) => {
+  try {
+    const { token, postId, text } = req.body;
+    if (!token || !postId || !text) {
+      return res.status(400).json({ result: false, error: "Missing fields" });
+    }
+
+    const user = await User.findOne({ token });
+    if (!user)
+      return res.status(404).json({ result: false, error: "User not found" });
+
+    const comment = { ownerComment: user._id, text, date: new Date() };
+
+    // push le commentaire et renvoyer le post mis à jour (avec populate)
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $push: { comments: comment } },
+      { new: true }
+    )
+      .populate("ownerPost", "username")
+      .populate("comments.ownerComment", "username")
+      .lean();
+
+    // tri des comments (au cas où)
+    if (Array.isArray(updatedPost?.comments)) {
+      updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    res.json({ result: true, post: updatedPost });
+  } catch (error) {
+    console.error("Erreur addComment :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
