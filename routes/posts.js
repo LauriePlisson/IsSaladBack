@@ -119,7 +119,7 @@ router.get("/getPosts", async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
-      .populate("ownerPost", "username") // récuperation du nom d'utilisateur
+      .populate("ownerPost", { username: 1, avatar: 1 }) // récuperation du nom d'utilisateur
       .populate("comments.ownerComment", "username");
 
     posts.forEach((elem) => {
@@ -129,8 +129,21 @@ router.get("/getPosts", async (req, res) => {
         );
       }
     });
-
-    res.json({ result: true, posts });
+    // check user.token in like/dislike arrays and return boolean and like/dislike count
+    const userToken = req.headers.authorization?.split(" ")[1] || null;
+    const user = await User.findOne({ token: userToken });
+    const postsWithUserInfo = posts.map((post) => {
+      const userHasLiked = post.like.includes(user._id.toString());
+      const userHasDisliked = post.dislike.includes(user._id.toString());
+      return {
+        ...post.toObject(),
+        userHasLiked,
+        userHasDisliked,
+        likeCount: post.like.length,
+        dislikeCount: post.dislike.length,
+      };
+    });
+    res.json({ result: true, posts: postsWithUserInfo });
   } catch (error) {
     console.log("Erreur lors de la récupération des posts :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
@@ -153,8 +166,8 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
     // Récupère les posts de cet utilisateur
     const posts = await Post.find({ ownerPost: user._id })
       .sort({ date: -1 })
-      .populate("ownerPost", "username")
-      .populate("comments.ownerComment", "username");
+      .populate("ownerPost", { username: 1, avatar: 1 })
+      .populate("comments.ownerComment", { username: 1, avatar: 1 });
 
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
@@ -254,14 +267,21 @@ router.put("/likePost", async (req, res) => {
     const post = await Post.findOne({ photoUrl });
 
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
+
     if (post.like.some((e) => e.equals(user._id))) {
-      // Si je trouve l'id dans dislike, je l'enlève
-      const removeIdToDislikes = await Post.updateOne(
+      // Si je trouve l'id dans like, je l'enlève
+      const removeIdToLikes = await Post.updateOne(
         { photoUrl },
         { $pull: { like: user._id } }
       );
     } else {
-      const addIdToDislikes = await Post.updateOne(
+      if (post.dislike.some((e) => e.equals(user._id))) {
+        const removeIdToDislikes = await Post.updateOne(
+          { photoUrl },
+          { $pull: { dislike: user._id } }
+        );
+      }
+      const addIdToLikes = await Post.updateOne(
         { photoUrl },
         { $addToSet: { like: user._id } }
       );
@@ -306,6 +326,12 @@ router.put("/dislikePost", async (req, res) => {
         { $pull: { dislike: user._id } }
       );
     } else {
+      if (post.like.some((e) => e.equals(user._id))) {
+        const removeIdToLikes = await Post.updateOne(
+          { photoUrl },
+          { $pull: { like: user._id } }
+        );
+      }
       const addIdToDislikes = await Post.updateOne(
         { photoUrl },
         { $addToSet: { dislike: user._id } }
@@ -314,10 +340,67 @@ router.put("/dislikePost", async (req, res) => {
 
     res.json({
       result: true,
-      message: "Post Unliked",
+      message: "Post disliked",
     });
   } catch (error) {
-    console.error("Like error:", error);
+    console.error("Dislike error:", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.delete("/deleteAllFromOne", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ result: false, error: "Token missing" });
+    }
+
+    const user = await User.findOne({ token });
+
+    await Post.deleteMany({ ownerPost: user._id });
+
+    res.json({
+      result: true,
+      message: "Posts deleted",
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    res.status(500).json({ result: false, error: "Internal server error" });
+  }
+});
+
+router.post("/addComment", async (req, res) => {
+  try {
+    const { token, postId, text } = req.body;
+    if (!token || !postId || !text) {
+      return res.status(400).json({ result: false, error: "Missing fields" });
+    }
+
+    const user = await User.findOne({ token });
+    if (!user)
+      return res.status(404).json({ result: false, error: "User not found" });
+
+    const comment = { ownerComment: user._id, text, date: new Date() };
+
+    // push le commentaire et renvoyer le post mis à jour (avec populate)
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $push: { comments: comment } },
+      { new: true }
+    )
+      .populate("ownerPost", "username")
+      .populate("comments.ownerComment", "username")
+      .lean();
+
+    // tri des comments (au cas où)
+    if (Array.isArray(updatedPost?.comments)) {
+      updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    res.json({ result: true, post: updatedPost });
+  } catch (error) {
+    console.error("Erreur addComment :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
