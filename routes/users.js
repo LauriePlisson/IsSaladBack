@@ -325,8 +325,10 @@ router.put("/addFriend", (req, res) => {
 //get one user
 router.get("/:username", (req, res) => {
   // console.log("Fetching user:", req.params.username);
+  const queryRegex = new RegExp("^" + req.params.username + "$", "i");
+
   try {
-    User.findOne({ username: req.params.username })
+    User.findOne({ username: queryRegex })
       .populate("team")
       .populate("postsList")
       .then((data) => {
