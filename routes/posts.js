@@ -119,7 +119,7 @@ router.get("/getPosts", async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
-      .populate("ownerPost", "username", "avatar"); // récuperation du nom d'utilisateur
+      .populate("ownerPost", {"username": 1, "avatar": 1}); // récuperation du nom d'utilisateur
 
     res.json({ result: true, posts });
   } catch (error) {
@@ -144,7 +144,7 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
     // Récupère les posts de cet utilisateur
     const posts = await Post.find({ ownerPost: user._id })
       .sort({ date: -1 })
-      .populate("ownerPost", "username", "avatar"); // Récupération du nom d'utilisateur et de l'avatar
+      .populate("ownerPost", {"username": 1, "avatar": 1}); // Récupération du nom d'utilisateur
 
     res.json({ result: true, posts });
   } catch (error) {
