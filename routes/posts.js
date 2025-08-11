@@ -389,8 +389,8 @@ router.post("/addComment", async (req, res) => {
       { $push: { comments: comment } },
       { new: true }
     )
-      .populate("ownerPost", "username")
-      .populate("comments.ownerComment", "username")
+      .populate("ownerPost", {"username": 1, "avatar": 1, "team": 1})
+      .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1})
       .lean();
 
     // tri des comments (au cas où)
@@ -424,8 +424,8 @@ router.post("/addComment", async (req, res) => {
       { $push: { comments: comment } },
       { new: true }
     )
-      .populate("ownerPost", "username")
-      .populate("comments.ownerComment", "username")
+      .populate("ownerPost", {"username": 1, "avatar": 1, "team": 1})
+      .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1})
       .lean();
 
     // tri des comments (au cas où)
