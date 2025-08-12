@@ -26,7 +26,7 @@ router.post("/signup", (req, res) => {
           token: uid2(32),
           avatar: "",
           description: "@" + req.body.username,
-          team: null,
+          team: undefined,
           friendsList: [],
           postsList: [],
         });
