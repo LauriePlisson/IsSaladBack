@@ -44,10 +44,11 @@ router.post("/createPost", async (req, res) => {
       });
     const fileBuffer = fs.readFileSync(photoPath);
 
-    if (!fileBuffer)
+    if (!fileBuffer) {
       return res
         .status(400)
         .json({ result: false, error: "File buffer is empty" });
+    }
     // ...to here
 
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -93,6 +94,9 @@ router.post("/createPost", async (req, res) => {
           await newPost.save();
           user.postsList.push(newPost._id);
           await user.save();
+
+          fs.unlink(photoPath, () => {});
+
           res.status(200).json({ result: true, post: newPost });
         } catch (err) {
           fs.unlinkSync(photoPath); // Delete temporary file after processing
@@ -366,41 +370,6 @@ router.delete("/deleteAllFromOne", async (req, res) => {
     });
   } catch (error) {
     console.error("Erreur lors de la suppression :", error);
-    res.status(500).json({ result: false, error: "Internal server error" });
-  }
-});
-
-router.post("/addComment", async (req, res) => {
-  try {
-    const { token, postId, text } = req.body;
-    if (!token || !postId || !text) {
-      return res.status(400).json({ result: false, error: "Missing fields" });
-    }
-
-    const user = await User.findOne({ token });
-    if (!user)
-      return res.status(404).json({ result: false, error: "User not found" });
-
-    const comment = { ownerComment: user._id, text, date: new Date() };
-
-    // push le commentaire et renvoyer le post mis à jour (avec populate)
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      { $push: { comments: comment } },
-      { new: true }
-    )
-      .populate("ownerPost", "username")
-      .populate("comments.ownerComment", "username")
-      .lean();
-
-    // tri des comments (au cas où)
-    if (Array.isArray(updatedPost?.comments)) {
-      updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
-
-    res.json({ result: true, post: updatedPost });
-  } catch (error) {
-    console.error("Erreur addComment :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
   }
 });
