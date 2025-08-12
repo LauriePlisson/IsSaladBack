@@ -26,7 +26,7 @@ router.post("/signup", (req, res) => {
           token: uid2(32),
           avatar: "",
           description: "@" + req.body.username,
-          team: null,
+          team: undefined,
           friendsList: [],
           postsList: [],
         });
@@ -75,12 +75,12 @@ router.post("/signin", (req, res) => {
             });
         });
       } else {
-        console.log("User not found or wrong password");
+        // console.log("User not found or wrong password");
         res.json({ result: false, error: "User not found or wrong password" });
       }
     });
   } catch (error) {
-    console.error("Error during sign-in:", error);
+    // console.error("Error during sign-in:", error);
     res.json({
       result: false,
       error: "An error occurred during sign-in",
@@ -115,7 +115,7 @@ router.delete("/", (req, res) => {
 //get all users
 router.get("/", (req, res) => {
   try {
-    console.log("Fetching all users");
+    // console.log("Fetching all users");
     User.find()
       .populate("team")
       .then((data) => {
@@ -143,17 +143,23 @@ router.get("/", (req, res) => {
 router.put("/changeUsername/:username", (req, res) => {
   try {
     checkBody(req.params, ["username"]);
-
-    User.updateOne(
-      { token: req.body.token },
-      { username: req.params.username }
-    ).then((data) => {
-      if (data.modifiedCount > 0) {
-        User.findOne({ token: req.body.token }).then((userdata) => {
-          res.json({ result: true, username: userdata.username });
-        });
+    User.findOne({ username: req.params.username }).then((data) => {
+      // console.log(data);
+      if (data) {
+        res.json({ result: false, error: "username already used" });
       } else {
-        res.json({ result: false, error: "no modification" });
+        User.updateOne(
+          { token: req.body.token },
+          { username: req.params.username }
+        ).then((data) => {
+          if (data.modifiedCount > 0) {
+            User.findOne({ token: req.body.token }).then((userdata) => {
+              res.json({ result: true, username: userdata.username });
+            });
+          } else {
+            res.json({ result: false, error: "no modification" });
+          }
+        });
       }
     });
   } catch (error) {
@@ -256,10 +262,6 @@ router.put("/changePassword", (req, res) => {
 
 //faire ajout suppression ami
 router.put("/addFriend", (req, res) => {
-  // if (!checkBody(req.body, ["token", "friendUsername"])) {
-  //   res.json({ result: false, error: "Missing or empty fields" });
-  //   return;
-  // }
   try {
     User.findOne({ token: req.body.token }).then((data) => {
       if (data) {
@@ -324,7 +326,6 @@ router.put("/addFriend", (req, res) => {
 
 //get one user
 router.get("/:username", (req, res) => {
-  // console.log("Fetching user:", req.params.username);
   const queryRegex = new RegExp("^" + req.params.username + "$", "i");
 
   try {
