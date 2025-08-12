@@ -120,7 +120,7 @@ router.get("/getPosts", async (req, res) => {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
       .populate("ownerPost", { username: 1, avatar: 1 }) // récuperation du nom d'utilisateur
-      .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1}) // récuperation du nom d'utilisateur des commentaires;
+      .populate("comments.ownerComment", { username: 1, avatar: 1, team: 1 }); // récuperation du nom d'utilisateur des commentaires;
 
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
@@ -370,6 +370,41 @@ router.delete("/deleteAllFromOne", async (req, res) => {
   }
 });
 
+// router.post("/addComment", async (req, res) => {
+//   try {
+//     const { token, postId, text } = req.body;
+//     if (!token || !postId || !text) {
+//       return res.status(400).json({ result: false, error: "Missing fields" });
+//     }
+
+//     const user = await User.findOne({ token });
+//     if (!user)
+//       return res.status(404).json({ result: false, error: "User not found" });
+
+//     const comment = { ownerComment: user._id, text, date: new Date() };
+
+//     // push le commentaire et renvoyer le post mis à jour (avec populate)
+//     const updatedPost = await Post.findByIdAndUpdate(
+//       postId,
+//       { $push: { comments: comment } },
+//       { new: true }
+//     )
+//       .populate("ownerPost", {"username": 1, "avatar": 1, "team": 1})
+//       .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1})
+//       .lean();
+
+//     // tri des comments (au cas où)
+//     if (Array.isArray(updatedPost?.comments)) {
+//       updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
+//     }
+
+//     res.json({ result: true, post: updatedPost });
+//   } catch (error) {
+//     console.error("Erreur addComment :", error);
+//     res.status(500).json({ result: false, error: "Internal server error" });
+//   }
+// });
+
 router.post("/addComment", async (req, res) => {
   try {
     const { token, postId, text } = req.body;
@@ -389,43 +424,8 @@ router.post("/addComment", async (req, res) => {
       { $push: { comments: comment } },
       { new: true }
     )
-      .populate("ownerPost", {"username": 1, "avatar": 1})
-      .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1})
-      .lean();
-
-    // tri des comments (au cas où)
-    if (Array.isArray(updatedPost?.comments)) {
-      updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
-
-    res.json({ result: true, post: updatedPost });
-  } catch (error) {
-    console.error("Erreur addComment :", error);
-    res.status(500).json({ result: false, error: "Internal server error" });
-  }
-});
-
-router.post("/addComment", async (req, res) => {
-  try {
-    const { token, postId, text } = req.body;
-    if (!token || !postId || !text) {
-      return res.status(400).json({ result: false, error: "Missing fields" });
-    }
-
-    const user = await User.findOne({ token });
-    if (!user)
-      return res.status(404).json({ result: false, error: "User not found" });
-
-    const comment = { ownerComment: user._id, text, date: new Date() };
-
-    // push le commentaire et renvoyer le post mis à jour (avec populate)
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      { $push: { comments: comment } },
-      { new: true }
-    )
-      .populate("ownerPost", {"username": 1, "avatar": 1})
-      .populate("comments.ownerComment", {"username": 1, "avatar": 1, "team": 1})
+      .populate("ownerPost", { username: 1, avatar: 1, team: 1 })
+      .populate("comments.ownerComment", { username: 1, avatar: 1, team: 1 })
       .lean();
 
     // tri des comments (au cas où)
