@@ -11,6 +11,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const User = require("../models/users");
 const Post = require("../models/post");
 const { checkBody } = require("../modules/checkBody");
+const { recomputeUserTeam } = require("../modules/team");
 
 router.post("/createPost", async (req, res) => {
   console.log("MON IMAGE LA", req.body);
@@ -78,7 +79,15 @@ router.post("/createPost", async (req, res) => {
               },
             ],
           });
-          const aiResult = response.choices[0].message.content;
+
+          //normaliser la réponse IA en 'soup' | 'salad' | 'sandwich'
+          let aiResult = (response.choices?.[0]?.message?.content || "")
+            .toLowerCase()
+            .replace(/\./g, "")
+            .trim();
+          const allowed = ["soup", "salad", "sandwich"];
+          if (!allowed.includes(aiResult)) aiResult = "salad";
+          console.log("AI result:", aiResult);
 
           // create new post in the database
           const newPost = new Post({
@@ -94,6 +103,13 @@ router.post("/createPost", async (req, res) => {
           await newPost.save();
           user.postsList.push(newPost._id);
           await user.save();
+          await recomputeUserTeam(user._id);
+
+          try {
+            await recomputeUserTeam(user._id);
+          } catch (e) {
+            console.log("recomputeUserTeam (non bloquant):", e.message);
+          }
 
           fs.unlink(photoPath, () => {});
 
@@ -214,6 +230,13 @@ router.delete("/deletePost", async (req, res) => {
 
     // Supprimer le post
     await Post.deleteOne({ photoUrl: req.body.photoUrl });
+    await recomputeUserTeam(user._id);
+
+    try {
+      await recomputeUserTeam(user._id); // mise à jour de l'équipe
+    } catch (e) {
+      console.log("recomputeUserTeam (non bloquant):", e.message);
+    }
 
     res.json({
       result: true,
