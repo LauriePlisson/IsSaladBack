@@ -385,6 +385,18 @@ router.delete("/deleteAllFromOne", async (req, res) => {
 
     const user = await User.findOne({ token });
 
+    const post = await Post.find();
+    const userComments = post.filter((post) =>
+      post.comments.some((comment) => comment.ownerComment.equals(user._id))
+    );
+    if (userComments.length !== 0) {
+      for (const post of userComments) {
+        await Post.updateOne(
+          { _id: post._id },
+          { $pull: { comments: { ownerComment: user._id } } }
+        );
+      }
+    }
     await Post.deleteMany({ ownerPost: user._id });
 
     res.json({
