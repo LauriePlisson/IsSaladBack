@@ -24,9 +24,9 @@ router.post("/signup", (req, res) => {
           mail: req.body.mail,
           password: hash,
           token: uid2(32),
-          avatar: "",
+          avatar: "https://res.cloudinary.com/dtaynthro/image/upload/v1755091049/ChatGPT_Image_13_aou%CC%82t_2025_14_49_51_usr5rp.png",
           description: "@" + req.body.username,
-          team: undefined,
+          team: '689c8e5990b486292b525155', // Default team ID
           friendsList: [],
           postsList: [],
         });
@@ -59,7 +59,7 @@ router.post("/signin", (req, res) => {
           { token: uid2(32) }
         ).then((uptdateData) => {
           User.findOne({ username: req.body.username })
-            .populate((path = "team"), (select = "name icon"))
+            .populate((path = "team"), (select = "name"))
             .populate((path = "friendsList"), (select = "username avatar team"))
             .then((finalData) => {
               console.log("User signed in:", finalData.username);
@@ -117,7 +117,7 @@ router.get("/", (req, res) => {
   try {
     // console.log("Fetching all users");
     User.find()
-      .populate("team")
+      .populate({ path: "team", select: "name" }) // populate team name
       .then((data) => {
         let users = [];
         for (let user of data) {
@@ -125,7 +125,7 @@ router.get("/", (req, res) => {
             username: user.username,
             avatar: user.avatar,
             description: user.description,
-            team: user.team,
+            team: user.team.name,
           });
         }
         res.json({ result: true, users: users });
@@ -330,7 +330,7 @@ router.get("/:username", (req, res) => {
 
   try {
     User.findOne({ username: queryRegex })
-      .populate("team")
+      .populate("team", "name")
       .populate("postsList")
       .then((data) => {
         if (data) {
