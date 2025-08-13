@@ -210,32 +210,36 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
 router.delete("/deletePost", async (req, res) => {
   try {
     const { token, photoUrl } = req.body;
-
     if (!token || !photoUrl) {
       return res
         .status(400)
         .json({ result: false, error: "Token or photoUrl missing" });
     }
 
-    // Trouver le user et supprimer l'id du post dans postsList
-    const postToDelete = await Post.findOne({ photoUrl: req.body.photoUrl });
-    const user = await User.findOne({ token: req.body.token });
-    if (user) {
-      await User.updateOne(
-        { token: req.body.token },
-        { $pull: { postsList: postToDelete._id } }
-      );
-      console.log("Post removed from user's postsList");
+    // 1) Trouver le post
+    const postToDelete = await Post.findOne({ photoUrl });
+    if (!postToDelete) {
+      return res.status(404).json({ result: false, error: "Post not found" });
     }
 
-    // Supprimer le post
-    await Post.deleteOne({ photoUrl: req.body.photoUrl });
-    await recomputeUserTeam(user._id);
+    // 2) Retirer cet ObjectId de toutes les postsList où il apparaît
+    await User.updateMany(
+      { postsList: postToDelete._id },
+      { $pull: { postsList: postToDelete._id } }
+    );
+    console.log("Post ID removed from users' postsList");
 
-    try {
-      await recomputeUserTeam(user._id); // mise à jour de l'équipe
-    } catch (e) {
-      console.log("recomputeUserTeam (non bloquant):", e.message);
+    // 3) Supprimer le post
+    await Post.deleteOne({ _id: postToDelete._id });
+
+    // 4) Recalcul de team pour l’utilisateur qui a fait la demande (si on le trouve)
+    const user = await User.findOne({ token: token });
+    if (user) {
+      try {
+        await recomputeUserTeam(user._id);
+      } catch (e) {
+        console.log("recomputeUserTeam (non bloquant):", e.message);
+      }
     }
 
     res.json({
