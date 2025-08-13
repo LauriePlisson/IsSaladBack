@@ -384,6 +384,7 @@ router.delete("/deleteAllFromOne", async (req, res) => {
     }
 
     const user = await User.findOne({ token });
+    // const comment = { ownerComment: user._id}
 
     await Post.deleteMany({ ownerPost: user._id });
 
