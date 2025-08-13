@@ -60,8 +60,8 @@ router.post("/signin", (req, res) => {
           { token: uid2(32) }
         ).then((uptdateData) => {
           User.findOne({ username: req.body.username })
-            .populate((path = "team"), (select = "name"))
-            .populate((path = "friendsList"), (select = "username avatar team"))
+            .populate((path = "team"), (select = "name icon"))
+            .populate("friendsList", "username avatar team")
             .then((finalData) => {
               console.log("User signed in:", finalData.username);
               res.json({
@@ -118,7 +118,7 @@ router.get("/", (req, res) => {
   try {
     // console.log("Fetching all users");
     User.find()
-      .populate({ path: "team", select: "name" }) // populate team name
+      .populate("team", "name") // populate team name
       .then((data) => {
         let users = [];
         for (let user of data) {
@@ -126,7 +126,7 @@ router.get("/", (req, res) => {
             username: user.username,
             avatar: user.avatar,
             description: user.description,
-            team: user.team.name,
+            team: user.team,
           });
         }
         res.json({ result: true, users: users });
