@@ -140,7 +140,10 @@ router.get("/getPosts", async (req, res) => {
     const posts = await Post.find()
       .sort({ date: -1 }) // les plus récents en premier
       .populate({ path: "ownerPost", select: "username avatar team" }) // récuperation du nom d'utilisateur
-      .populate({ path: "comments.ownerComment", select: "username avatar team" }); // récuperation du nom d'utilisateur des commentaires;
+      .populate({
+        path: "comments.ownerComment",
+        select: "username avatar team",
+      }); // récuperation du nom d'utilisateur des commentaires;
 
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
@@ -187,7 +190,10 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
     const posts = await Post.find({ ownerPost: user._id })
       .sort({ date: -1 })
       .populate({ path: "ownerPost", select: "username avatar team" })
-      .populate({ path: "comments.ownerComment", select: "username avatar team" });
+      .populate({
+        path: "comments.ownerComment",
+        select: "username avatar team",
+      });
 
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
@@ -434,7 +440,10 @@ router.post("/addComment", async (req, res) => {
       { new: true }
     )
       .populate({ path: "ownerPost", select: "username avatar team" })
-      .populate({ path: "comments.ownerComment", select: "username avatar team" })
+      .populate({
+        path: "comments.ownerComment",
+        select: "username avatar team",
+      })
       .lean();
 
     // tri des comments (au cas où)
