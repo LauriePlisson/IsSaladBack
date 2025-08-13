@@ -24,7 +24,8 @@ router.post("/signup", (req, res) => {
           mail: req.body.mail,
           password: hash,
           token: uid2(32),
-          avatar: "",
+          avatar:
+            "https://res.cloudinary.com/dtaynthro/image/upload/v1755089547/ChatGPT_Image_13_aou%CC%82t_2025_14_49_51_fuwvia.png",
           description: "@" + req.body.username,
           team: undefined,
           friendsList: [],
