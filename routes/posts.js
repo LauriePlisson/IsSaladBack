@@ -125,7 +125,7 @@ Important:
           await newPost.save();
           user.postsList.push(newPost._id);
           await user.save();
-          await recomputeUserTeam(user._id);
+          // await recomputeUserTeam(user._id);
 
           try {
             await recomputeUserTeam(user._id);
