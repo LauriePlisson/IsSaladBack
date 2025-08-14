@@ -137,13 +137,23 @@ router.post("/createPost", async (req, res) => {
 
 router.get("/getPosts", async (req, res) => {
   try {
-    const posts = await Post.find()
-      .sort({ date: -1 }) // les plus récents en premier
-      .populate({ path: "ownerPost", select: "username avatar team" }) // récuperation du nom d'utilisateur
+    const userToken = req.headers.authorization?.split(" ")[1] || null;
+    const user = await User.findOne({ token: userToken });
+
+    if (!user) {
+      return res.status(401).json({ result: false, error: "Invalid token" });
+    }
+
+    // On garde juste les posts de mes amis et de moi-même
+    const friendsAndMe = [...user.friendsList, user._id];
+
+    const posts = await Post.find({ ownerPost: { $in: friendsAndMe } })
+      .sort({ date: -1 })
+      .populate({ path: "ownerPost", select: "username avatar team" })
       .populate({
         path: "comments.ownerComment",
         select: "username avatar team",
-      }); // récuperation du nom d'utilisateur des commentaires;
+      });
 
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
@@ -152,9 +162,7 @@ router.get("/getPosts", async (req, res) => {
         );
       }
     });
-    // check user.token in like/dislike arrays and return boolean and like/dislike count
-    const userToken = req.headers.authorization?.split(" ")[1] || null;
-    const user = await User.findOne({ token: userToken });
+
     const postsWithUserInfo = posts.map((post) => {
       const userHasLiked = post.like.includes(user._id.toString());
       const userHasDisliked = post.dislike.includes(user._id.toString());
@@ -166,6 +174,7 @@ router.get("/getPosts", async (req, res) => {
         dislikeCount: post.dislike.length,
       };
     });
+
     res.json({ result: true, posts: postsWithUserInfo });
   } catch (error) {
     console.log("Erreur lors de la récupération des posts :", error);
