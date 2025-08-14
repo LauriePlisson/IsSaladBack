@@ -105,7 +105,7 @@ Important:
             "salad",
             "sandwich",
             "raviolis",
-            "ravioli salad",
+            "ravioliSalad",
             "other",
           ];
           if (!allowed.includes(aiResult)) aiResult = "other";
@@ -185,7 +185,11 @@ router.get("/getPosts", async (req, res) => {
       .populate({
         path: "comments",
         select: "ownerComment text date hasLiked",
-        populate: { path: "ownerComment", select: "name avatar team-_id" },
+        populate: {
+          path: "ownerComment",
+          select: "username avatar team -_id",
+          populate: { path: "team", select: "name -_id" },
+        },
       }); // récuperation des noms d'utilisateurs, avatars et teams des commentaires;
     console.log(1);
     posts.forEach((elem) => {
@@ -242,7 +246,11 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
       .populate({
         path: "comments",
         select: "ownerComment text date hasLiked",
-        populate: { path: "ownerComment", select: "name avatar team-_id" }, // Récupération des noms d'utilisateurs, avatars et teams des commentaires
+        populate: {
+          path: "ownerComment",
+          select: "username avatar team -_id",
+          populate: { path: "team", select: "name -_id" },
+        },
       });
 
     posts.forEach((elem) => {
@@ -493,11 +501,15 @@ router.post("/addComment", async (req, res) => {
         path: "ownerPost",
         select: "username avatar team",
         populate: { path: "team", select: "name -_id" },
-      }) // Récupération du nom d'utilisateur, avatar et team du créateur du post
+      })
       .populate({
-        path: "comments.ownerComment",
-        select: "username avatar team",
-        populate: { path: "team", select: "name -_id" },
+        path: "comments",
+        select: "ownerComment text date hasLiked",
+        populate: {
+          path: "ownerComment",
+          select: "username avatar team -_id",
+          populate: { path: "team", select: "name -_id" },
+        },
       }) // Récupération des noms d'utilisateurs, avatars et teams des commentaires
       .lean();
 
