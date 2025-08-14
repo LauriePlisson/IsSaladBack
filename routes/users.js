@@ -26,7 +26,7 @@ router.post("/signup", (req, res) => {
           token: uid2(32),
           avatar: "https://res.cloudinary.com/dtaynthro/image/upload/v1755091049/ChatGPT_Image_13_aou%CC%82t_2025_14_49_51_usr5rp.png",
           description: "@" + req.body.username,
-          team: '689c8e5990b486292b525155', // Default team ID
+          team: '689c8e5990b486292b525155', // Default team ID is 'raviolis'
           friendsList: [],
           postsList: [],
         });
@@ -59,8 +59,9 @@ router.post("/signin", (req, res) => {
           { token: uid2(32) }
         ).then((uptdateData) => {
           User.findOne({ username: req.body.username })
-            .populate((path = "team"), (select = "name"))
-            .populate((path = "friendsList"), (select = "username avatar team"))
+            .populate({ path: "team", select: "name" })
+            .populate({ path: "friendsList", select: "username avatar team",
+              populate: { path: "team", select: "name -_id" }})
             .then((finalData) => {
               console.log("User signed in:", finalData.username);
               res.json({
@@ -70,7 +71,7 @@ router.post("/signin", (req, res) => {
                 friendsList: finalData.friendsList,
                 avatar: finalData.avatar,
                 description: finalData.description,
-                team: finalData.team,
+                team: finalData.team.name,
               });
             });
         });
@@ -125,7 +126,7 @@ router.get("/", (req, res) => {
             username: user.username,
             avatar: user.avatar,
             description: user.description,
-            team: user.team.name,
+            team: user.team ? user.team.name : "raviolis", // default team if not set
           });
         }
         res.json({ result: true, users: users });
@@ -278,10 +279,11 @@ router.put("/addFriend", (req, res) => {
                 { $addToSet: { friendsList: friendData._id } }
               ).then(() => {
                 User.findOne({ token: req.body.token })
-                  .populate(
-                    (path = "friendsList"),
-                    (select = "username avatar team")
-                  )
+                  .populate({
+                    path: "friendsList",
+                    select: "username avatar team",
+                    populate: { path: "team", select: "name -_id" },
+                  })
                   .then((userData) => {
                     res.json({
                       result: true,
@@ -298,10 +300,11 @@ router.put("/addFriend", (req, res) => {
               ).then(() => {
                 console.log("Friend removed");
                 User.findOne({ token: req.body.token })
-                  .populate(
-                    (path = "friendsList"),
-                    (select = "username avatar team")
-                  )
+                  .populate({
+                    path: "friendsList",
+                    select: "username avatar team",
+                    populate: { path: "team", select: "name -_id" },
+                  })
                   .then((userData) => {
                     res.json({
                       result: true,
@@ -330,16 +333,24 @@ router.get("/:username", (req, res) => {
 
   try {
     User.findOne({ username: queryRegex })
-      .populate("team", "name")
-      .populate("postsList")
-      .then((data) => {
+    .populate({ 
+      path: "postsList", 
+      populate: [
+        { path: "ownerPost", select: "username avatar team -_id" ,
+          populate: { path: "team", select: "name -_id" } },
+        { path: "comments.ownerComment", select: "username avatar team -_id",
+        populate: { path: "team", select: "name -_id" }},
+      ],
+    })
+    .populate({ path: "team", select: "name -_id" })
+    .then((data) => {
         if (data) {
           res.json({
             result: true,
             username: data.username,
             avatar: data.avatar,
             description: data.description,
-            team: data.team,
+            team: data.team.name,
             friendList: data.friendsList,
             numberOfFriends: data.friendsList.length,
             postsList: data.postsList,
