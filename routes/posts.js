@@ -19,13 +19,13 @@ router.post("/createPost", async (req, res) => {
   try {
     let prompt = `
 Look at the image and output EXACTLY ONE of these labels:
-"soup", "salad", "sandwich", "ravioli", "ravioli salad", "other".
+"soup", "salad", "sandwich", "ravioli", "ravioli-salad", "other".
 
 Decision rules (in this order):
 1) If the image contains humans:
-   - If there are two or more distinct people -> "ravioli salad".
+   - If there are two or more distinct people -> "ravioli-salad".
    - If there is exactly one person -> "ravioli".
-2) If the image does NOT primarily depict food (e.g., landscape, desk, computer, empty table, random objects) -> "no food".
+2) If the image does NOT primarily depict food (e.g., landscape, desk, computer, empty table, random objects) -> "other".
 3) Otherwise classify the food:
    - "soup": food mainly immersed in broth/liquid.
    - "sandwich": food inside or between a bread-like container/wrap.
@@ -104,8 +104,8 @@ Important:
             "soup",
             "salad",
             "sandwich",
-            "raviolis",
-            "ravioliSalad",
+            "ravioli",
+            "ravioli-salad",
             "other",
           ];
           if (!allowed.includes(aiResult)) aiResult = "other";
@@ -246,11 +246,7 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
       .populate({
         path: "comments",
         select: "ownerComment text date hasLiked",
-        populate: {
-          path: "ownerComment",
-          select: "username avatar team -_id",
-          populate: { path: "team", select: "name -_id" },
-        },
+        populate: { path: "ownerComment", select: "name avatar team-_id" }, // Récupération des noms d'utilisateurs, avatars et teams des commentaires
       });
 
     posts.forEach((elem) => {
