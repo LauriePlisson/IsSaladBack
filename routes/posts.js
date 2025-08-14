@@ -19,7 +19,7 @@ router.post("/createPost", async (req, res) => {
   try {
     let prompt = `
 Look at the image and output EXACTLY ONE of these labels:
-"soup", "salad", "sandwich", "ravioli", "ravioli salad", "no food".
+"soup", "salad", "sandwich", "ravioli", "ravioli salad", "other".
 
 Decision rules (in this order):
 1) If the image contains humans:
@@ -161,6 +161,9 @@ router.get("/getPosts", async (req, res) => {
   try {
     const userToken = req.headers.authorization?.split(" ")[1] || null;
     const user = await User.findOne({ token: userToken });
+    // .populate({
+    //   path: "friendsList",
+    // });
 
     if (!user) {
       return res.status(401).json({ result: false, error: "Invalid token" });
@@ -168,16 +171,23 @@ router.get("/getPosts", async (req, res) => {
 
     // On garde juste les posts de mes amis et de moi-même
     const friendsAndMe = [...user.friendsList, user._id];
+    console.log(friendsAndMe);
 
+    // for (let friend of friendsAndMe) {
+    //   console.log(friend);
     const posts = await Post.find({ ownerPost: { $in: friendsAndMe } })
       .sort({ date: -1 })
-      .populate({ path: "ownerPost", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" }
-       }) // récuperation du nom d'utilisateur, avatar et team du createur du post
-      .populate({ path: "comments.ownerComment", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" }
-       }); // récuperation des noms d'utilisateurs, avatars et teams des commentaires;
-
+      .populate({
+        path: "ownerPost",
+        select: "username avatar team",
+        populate: { path: "team", select: "name -_id" },
+      }) // récuperation du nom d'utilisateur, avatar et team du createur du post
+      .populate({
+        path: "comments",
+        select: "ownerComment text date hasLiked",
+        populate: { path: "ownerComment", select: "name avatar team-_id" },
+      }); // récuperation des noms d'utilisateurs, avatars et teams des commentaires;
+    console.log(1);
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
         elem.comments.sort(
@@ -185,7 +195,7 @@ router.get("/getPosts", async (req, res) => {
         );
       }
     });
-
+    console.log(2);
     const postsWithUserInfo = posts.map((post) => {
       const userHasLiked = post.like.includes(user._id.toString());
       const userHasDisliked = post.dislike.includes(user._id.toString());
@@ -197,8 +207,11 @@ router.get("/getPosts", async (req, res) => {
         dislikeCount: post.dislike.length,
       };
     });
+    console.log(3);
+    // console.log(postsWithUserInfo);
 
     res.json({ result: true, posts: postsWithUserInfo });
+    // }
   } catch (error) {
     console.log("Erreur lors de la récupération des posts :", error);
     res.status(500).json({ result: false, error: "Internal server error" });
@@ -221,10 +234,15 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
     // Récupère les posts de cet utilisateur
     const posts = await Post.find({ ownerPost: user._id })
       .sort({ date: -1 })
-      .populate({ path: "ownerPost", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" }}) // Récupération du nom d'utilisateur, avatar et team du créateur du post
-      .populate({ path: "comments.ownerComment", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" } // Récupération des noms d'utilisateurs, avatars et teams des commentaires
+      .populate({
+        path: "ownerPost",
+        select: "username avatar team",
+        populate: { path: "team", select: "name -_id" },
+      }) // Récupération du nom d'utilisateur, avatar et team du créateur du post
+      .populate({
+        path: "comments",
+        select: "ownerComment text date hasLiked",
+        populate: { path: "ownerComment", select: "name avatar team-_id" }, // Récupération des noms d'utilisateurs, avatars et teams des commentaires
       });
 
     posts.forEach((elem) => {
@@ -471,12 +489,16 @@ router.post("/addComment", async (req, res) => {
       { $push: { comments: comment } },
       { new: true }
     )
-      .populate({ path: "ownerPost", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" }
-       }) // Récupération du nom d'utilisateur, avatar et team du créateur du post
-      .populate({ path: "comments.ownerComment", select: "username avatar team",
-        populate: { path: "team", select: "name -_id" }
-       }) // Récupération des noms d'utilisateurs, avatars et teams des commentaires
+      .populate({
+        path: "ownerPost",
+        select: "username avatar team",
+        populate: { path: "team", select: "name -_id" },
+      }) // Récupération du nom d'utilisateur, avatar et team du créateur du post
+      .populate({
+        path: "comments.ownerComment",
+        select: "username avatar team",
+        populate: { path: "team", select: "name -_id" },
+      }) // Récupération des noms d'utilisateurs, avatars et teams des commentaires
       .lean();
 
     // tri des comments (au cas où)
