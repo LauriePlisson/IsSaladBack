@@ -14,7 +14,7 @@ const { checkBody } = require("../modules/checkBody");
 const { recomputeUserTeam } = require("../modules/team");
 
 router.post("/createPost", async (req, res) => {
-  console.log("MON IMAGE LA", req.body);
+  // console.log("MON IMAGE LA", req.body);
 
   try {
     let prompt = `
@@ -23,20 +23,20 @@ Look at the image and output EXACTLY ONE of these labels:
 
 Decision rules (in this order):
 1) If the image contains humans:
-   - If there are two or more distinct people -> "ravioli-salad".
-   - If there is exactly one person -> "ravioli".
-2) If the image does NOT primarily depict food (e.g., landscape, desk, computer, empty table, random objects) -> "other".
+  - If there are two or more distinct people -> "ravioli-salad".
+  - If there is exactly one person -> "ravioli".
+2) If the image does NOT primarily depict food or humans (e.g., landscape, desk, computer, empty table, random objects) -> "other".
 3) Otherwise classify the food:
-   - "soup": food mainly immersed in broth/liquid.
-   - "sandwich": food inside or between a bread-like container/wrap.
-   - "salad": everything else.
+  - "soup": food mainly immersed in broth/liquid.
+  - "sandwich": food inside or between a bread-like container/wrap.
+  - "salad": everything else.
 
 Important:
 - Output ONLY one of the allowed labels, with no extra words or punctuation.
 `;
     // Try to make this shorter from here...
     if (!checkBody(req.body, ["token"])) {
-      console.log("Missing date in request body");
+      console.log("Missing token in request body");
 
       return res
         .status(400)
@@ -58,7 +58,7 @@ Important:
         result: false,
         error: "File upload error: " + resultMove.message,
       });
-    const fileBuffer = fs.readFileSync(photoPath);
+    const fileBuffer = fs.readFileSync(photoPath); //createReadableStreamFrom(photoPath);
 
     if (!fileBuffer) {
       return res
@@ -95,7 +95,7 @@ Important:
             ],
           });
 
-          //normaliser la réponse IA en 'soup' | 'salad' | 'sandwich' | 'raviolis'
+          //normaliser la réponse IA en 'soup' | 'salad' | 'sandwich' | 'raviolis' | 'ravioli-salad' | 'other'
           let aiResult = (response.choices?.[0]?.message?.content || "")
             .toLowerCase()
             .replace(/\./g, "")
@@ -125,7 +125,7 @@ Important:
           await newPost.save();
           user.postsList.push(newPost._id);
           await user.save();
-          await recomputeUserTeam(user._id);
+          // await recomputeUserTeam(user._id);
 
           try {
             await recomputeUserTeam(user._id);
@@ -142,9 +142,6 @@ Important:
             .status(500)
             .json({ result: false, error: "Database error" + err.message });
         }
-        // finally {
-        //   fs.unlinkSync(photoPath); // Delete temporary file after processing
-        // }
       }
     );
     // Pipe file buffer into Cloudinary upload stream
