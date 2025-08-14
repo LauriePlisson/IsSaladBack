@@ -61,8 +61,11 @@ router.post("/signin", (req, res) => {
         ).then((uptdateData) => {
           User.findOne({ username: req.body.username })
             .populate({ path: "team", select: "name" })
-            .populate({ path: "friendsList", select: "username avatar team",
-              populate: { path: "team", select: "name -_id" }})
+            .populate({
+              path: "friendsList",
+              select: "username avatar team",
+              populate: { path: "team", select: "name -_id" },
+            })
             .then((finalData) => {
               console.log("User signed in:", finalData.username);
               res.json({
@@ -98,7 +101,11 @@ router.post("/signinToken", (req, res) => {
 
     User.findOne({ token: req.body.token })
       .populate((path = "team"), (select = "name icon"))
-      .populate("friendsList", "username avatar team")
+      .populate({
+        path: "friendsList",
+        select: "username avatar team",
+        populate: { path: "team", select: "name -_id" },
+      })
       .then((data) => {
         if (data) {
           res.json({
@@ -367,17 +374,23 @@ router.get("/:username", (req, res) => {
 
   try {
     User.findOne({ username: queryRegex })
-    .populate({ 
-      path: "postsList", 
-      populate: [
-        { path: "ownerPost", select: "username avatar team -_id" ,
-          populate: { path: "team", select: "name -_id" } },
-        { path: "comments.ownerComment", select: "username avatar team -_id",
-        populate: { path: "team", select: "name -_id" }},
-      ],
-    })
-    .populate({ path: "team", select: "name -_id" })
-    .then((data) => {
+      .populate({
+        path: "postsList",
+        populate: [
+          {
+            path: "ownerPost",
+            select: "username avatar team -_id",
+            populate: { path: "team", select: "name -_id" },
+          },
+          {
+            path: "comments.ownerComment",
+            select: "username avatar team -_id",
+            populate: { path: "team", select: "name -_id" },
+          },
+        ],
+      })
+      .populate({ path: "team", select: "name -_id" })
+      .then((data) => {
         if (data) {
           res.json({
             result: true,
