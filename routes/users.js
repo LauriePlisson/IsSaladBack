@@ -91,6 +91,39 @@ router.post("/signin", (req, res) => {
   }
 });
 
+//route signIn token
+router.post("/signinToken", (req, res) => {
+  try {
+    checkBody(req.body, ["token"]);
+
+    User.findOne({ token: req.body.token })
+      .populate((path = "team"), (select = "name icon"))
+      .populate("friendsList", "username avatar team")
+      .then((data) => {
+        if (data) {
+          res.json({
+            result: true,
+            username: data.username,
+            token: data.token,
+            friendsList: data.friendsList,
+            avatar: data.avatar,
+            description: data.description,
+            team: data.team,
+          });
+        } else {
+          res.json({ result: false, error: "user not found" });
+        }
+      });
+  } catch (error) {
+    // console.error("Error during sign-in:", error);
+    res.json({
+      result: false,
+      error: "An error occurred during sign-in",
+      errorDetails: error.message,
+    });
+  }
+});
+
 //suppression compte
 router.delete("/", (req, res) => {
   try {
