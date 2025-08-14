@@ -37,39 +37,36 @@ router.get("/", (req, res) => {
 
 router.put("/add", (req, res) => {
   User.findOne({ token: req.body.token })
-    .populate("team")
-    .then((data) => {
-      //verifier si user existe dans une autre team et le supprimer de cette team
-      if (data.team) {
-        Team.updateOne(
-          { name: data.team.name },
-          { $pull: { userList: data._id } }
-        ).then(() => {
-          // console.log("User left team " + data.team.name);
-        });
-      }
-
+  .populate("team")
+  .then((data) => {
+    //verifier si user existe dans une autre team et le supprimer de cette team
+    if (data.team) {
       Team.updateOne(
-        { name: req.body.team },
-        { $addToSet: { userList: data._id } }
-      ).then((teamdata) => {
-        Team.findOne({ name: req.body.team }).then((teamInfo) => {
-          // console.log(teamInfo);
-          User.updateOne(
-            { token: req.body.token },
-            { team: teamInfo._id }
-          ).then(() => {
-            Team.find().then((teamsdata) => {
-              res.json({
-                result: true,
-                message: "user added",
-                team: teamsdata,
+        { name: data.team.name },
+        { $pull: { userList: data._id } }
+      ).then(() => {
+        Team.updateOne(
+          { name: req.body.team },
+          { $addToSet: { userList: data._id } }
+        ).then(() => {
+          Team.findOne({ name: req.body.team }).then((teamInfo) => {
+            User.updateOne(
+              { token: req.body.token },
+              { team: teamInfo._id }
+            ).then(() => {
+              Team.find().then((teamsdata) => {
+                res.json({
+                  result: true,
+                  message: "user added",
+                  team: teamsdata,
+                });
               });
             });
           });
         });
       });
-    });
+    }
+  });
 });
 
 //get one pour avoir une team
