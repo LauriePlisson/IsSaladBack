@@ -106,9 +106,9 @@ Important:
             "sandwich",
             "raviolis",
             "ravioli salad",
-            "no food",
+            "other",
           ];
-          if (!allowed.includes(aiResult)) aiResult = "no food";
+          if (!allowed.includes(aiResult)) aiResult = "other";
           console.log("AI result:", aiResult);
 
           // create new post in the database
