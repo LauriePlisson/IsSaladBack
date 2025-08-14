@@ -69,49 +69,47 @@ async function recomputeUserTeam(userId) {
     teamName = "raviolis";
   else if (scores["ravioli-salad"] > scores.salad && scores["ravioli-salad"] > scores.soup && scores["ravioli-salad"] > scores.sandwich && scores["ravioli-salad"] > scores.raviolis && scores["ravioli-salad"] > scores.other)
     teamName = "ravioli-salad";
-  else if (scores.salad === 0 && scores.soup === 0 && scores.sandwich === 0 && scores.raviolis === 0 && scores["ravioli-salad"] === 0)
-    teamName = "other"; // si aucun post, on va sur 'other'
-  else if ((scores.salad === scores.soup && scores.salad === scores.sandwich && scores.salad === scores.raviolis && scores.salad === scores["ravioli-salad"] && scores.salad === scores.other) || (scores.soup === scores.sandwich && scores.soup === scores.raviolis && scores.soup === scores["ravioli-salad"] && scores.soup === scores.other))
-    teamName = "other"; // si égalité totale, on va sur 'other'
+  else if (scores.other > scores.soup && scores.other > scores.salad && scores.other > scores.sandwich && scores.other > scores.raviolis && scores.other > scores["ravioli-salad"]) {
+    teamName = "other";
   // Si 'other' est le plus grand
 
-  if (scores.other > scores.soup && scores.other > scores.salad && scores.other > scores.sandwich && scores.other > scores.raviolis && scores.other > scores["ravioli-salad"]) {
-    teamName = "other";
-  } else {
-    // Vérifie s'il y a égalité entre deux équipes gagnantes (hors 'other')
-    const maxScore = Math.max(scores.soup, scores.salad, scores.sandwich, scores.raviolis, scores["ravioli-salad"]);
-    const winners = ["soup", "salad", "sandwich", "raviolis", "ravioli-salad"].filter(k => scores[k] === maxScore && maxScore > 0);
-    if (winners.length >= 2) {
-      // Deux équipes gagnantes ou plus, pas de changement d'équipe
-      return await User.findById(userId).then(user => Team.findById(user.team));
-    } else if (winners.length === 1) {
-      teamName = winners[0]; // Une seule équipe gagnante
-    } else {
-      teamName = "other"; // Si aucun score positif
-    }
+  // Vérifie s'il y a égalité entre deux équipes gagnantes
+  const maxScore = Math.max(scores.soup, scores.salad, scores.sandwich, scores.raviolis, scores["ravioli-salad"], scores.other);
+  const winners = ["soup", "salad", "sandwich", "raviolis", "ravioli-salad", "other"].filter(k => {(scores[k] === maxScore) && (maxScore > 0)});
+  if (winners.length >= 2) {
+    // Deux équipes gagnantes ou plus, pas de changement d'équipe
+    let tmp = await User.findById(userId).then(user => Team.findById(user.team));
+    console.log("Égalité entre équipes, pas de changement d'équipe pour l'utilisateur:", userId);
+    teamName = tmp.name; // Garde l'équipe actuelle
+  } else if (winners.length === 1) {
+    teamName = winners[0]; // Une seule équipe gagnante
+    console.log("Équipe gagnante:", teamName);
   }
   // 3) Récupérer la team cible
   const teamDoc = await Team.findOne({ name: teamName });
   if (!teamDoc) throw new Error("Team introuvable: " + teamName);
+  console.log("Team trouvée:", teamDoc.name, "pour l'utilisateur:", userId);
 
   // 4) Synchroniser les deux côtés
-  const userTeam = await User.findById(userId).then(user => Team.findById(user.team));
-  if (userTeam && userTeam.name === teamName) {
-    // Si l'utilisateur est déjà dans la bonne équipe, rien à faire
-    return userTeam;
+  // const userTeam = await User.findById(userId).then(user => Team.findById(user.team));
+  // if (userTeam._id.equals(teamDoc._id)) {
+  //   // Si l'utilisateur est déjà dans la bonne équipe, rien à faire
+  //   console.log("L'utilisateur est déjà dans l'équipe correcte:", teamName);
+  //   return ;
+  // } else {
+    // 4a) Retirer l'user de son ancienne team
+    await Team.updateMany({}, { $pull: { userList: userId } });
+
+    // 4b) L’ajouter dans la bonne team
+    await Team.updateOne(
+      { _id: teamDoc._id },
+      { $addToSet: { userList: userId } }
+    );
+
+    // 4c) Mettre à jour le champ 'team' du user
+    await User.updateOne({ _id: userId }, { team: teamDoc._id });
   }
-  // 4a) Retirer l'user de son ancienne team
-  await Team.updateOne({ _id: userTeam._id }, { $pull: { userList: userId } });
-
-  // 4b) L’ajouter dans la bonne team
-  await Team.updateOne(
-    { _id: teamDoc._id },
-    { $addToSet: { userList: userId } }
-  );
-
-  // 4c) Mettre à jour le champ 'team' du user
-  await User.updateOne({ _id: userId }, { team: teamDoc._id });
-
+  console.log("Team mise à jour pour l'utilisateur:", userId, "Nouvelle équipe:", teamName);
   return teamDoc; // optionnel
 }
 
