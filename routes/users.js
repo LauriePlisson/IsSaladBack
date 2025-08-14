@@ -24,9 +24,10 @@ router.post("/signup", (req, res) => {
           mail: req.body.mail,
           password: hash,
           token: uid2(32),
-          avatar: "https://res.cloudinary.com/dtaynthro/image/upload/v1755091049/ChatGPT_Image_13_aou%CC%82t_2025_14_49_51_usr5rp.png",
+          avatar:
+            "https://res.cloudinary.com/dtaynthro/image/upload/v1755091049/ChatGPT_Image_13_aou%CC%82t_2025_14_49_51_usr5rp.png",
           description: "@" + req.body.username,
-          team: '689c8e5990b486292b525155', // Default team ID is 'raviolis'
+          team: "689c8e5990b486292b525155", // Default team ID
           friendsList: [],
           postsList: [],
         });
@@ -118,7 +119,7 @@ router.get("/", (req, res) => {
   try {
     // console.log("Fetching all users");
     User.find()
-      .populate({ path: "team", select: "name" }) // populate team name
+      .populate("team", "name") // populate team name
       .then((data) => {
         let users = [];
         for (let user of data) {
@@ -126,7 +127,7 @@ router.get("/", (req, res) => {
             username: user.username,
             avatar: user.avatar,
             description: user.description,
-            team: user.team ? user.team.name : "raviolis", // default team if not set
+            team: user.team,
           });
         }
         res.json({ result: true, users: users });
