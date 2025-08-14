@@ -17,8 +17,23 @@ router.post("/createPost", async (req, res) => {
   console.log("MON IMAGE LA", req.body);
 
   try {
-    let prompt =
-      'Sandwiches are any food that is contained in itself OR in an bread-like containment. Soups are any food that is completely engulfed in broth/liquid. Everything else is a salad. With that in mind, what is this food. Your reponse must be "soup", "salad" or "sandwich" and nothing else.';
+    let prompt = `
+Look at the image and output EXACTLY ONE of these labels:
+"soup", "salad", "sandwich", "ravioli", "ravioli salad", "no food".
+
+Decision rules (in this order):
+1) If the image contains humans:
+   - If there are two or more distinct people -> "ravioli salad".
+   - If there is exactly one person -> "ravioli".
+2) If the image does NOT primarily depict food (e.g., landscape, desk, computer, empty table, random objects) -> "no food".
+3) Otherwise classify the food:
+   - "soup": food mainly immersed in broth/liquid.
+   - "sandwich": food inside or between a bread-like container/wrap.
+   - "salad": everything else.
+
+Important:
+- Output ONLY one of the allowed labels, with no extra words or punctuation.
+`;
     // Try to make this shorter from here...
     if (!checkBody(req.body, ["token"])) {
       console.log("Missing date in request body");
@@ -85,8 +100,15 @@ router.post("/createPost", async (req, res) => {
             .toLowerCase()
             .replace(/\./g, "")
             .trim();
-          const allowed = ["soup", "salad", "sandwich", "raviolis"];
-          if (!allowed.includes(aiResult)) aiResult = "raviolis";
+          const allowed = [
+            "soup",
+            "salad",
+            "sandwich",
+            "raviolis",
+            "ravioli salad",
+            "no food",
+          ];
+          if (!allowed.includes(aiResult)) aiResult = "no food";
           console.log("AI result:", aiResult);
 
           // create new post in the database
