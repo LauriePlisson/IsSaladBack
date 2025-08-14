@@ -171,7 +171,6 @@ router.get("/getPosts", async (req, res) => {
 
     // On garde juste les posts de mes amis et de moi-même
     const friendsAndMe = [...user.friendsList, user._id];
-    console.log(friendsAndMe);
 
     // for (let friend of friendsAndMe) {
     //   console.log(friend);
@@ -191,7 +190,7 @@ router.get("/getPosts", async (req, res) => {
           populate: { path: "team", select: "name -_id" },
         },
       }); // récuperation des noms d'utilisateurs, avatars et teams des commentaires;
-    console.log(1);
+
     posts.forEach((elem) => {
       if (Array.isArray(elem.comments)) {
         elem.comments.sort(
@@ -199,7 +198,7 @@ router.get("/getPosts", async (req, res) => {
         );
       }
     });
-    console.log(2);
+
     const postsWithUserInfo = posts.map((post) => {
       const userHasLiked = post.like.includes(user._id.toString());
       const userHasDisliked = post.dislike.includes(user._id.toString());
@@ -211,8 +210,6 @@ router.get("/getPosts", async (req, res) => {
         dislikeCount: post.dislike.length,
       };
     });
-    console.log(3);
-    // console.log(postsWithUserInfo);
 
     res.json({ result: true, posts: postsWithUserInfo });
     // }
