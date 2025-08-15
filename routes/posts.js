@@ -16,21 +16,18 @@ const { recomputeUserTeam } = require("../modules/team");
 router.post("/createPost", async (req, res) => {
   try {
     let prompt = `
-Look at the image and output EXACTLY ONE of these labels:
-"soup", "salad", "sandwich", "ravioli", "ravioli-salad", "other".
+tu es un expert de la théorie soup salad sandwich, selon laquelle les plats peuvent être classés en 3 catégories, Soup Salad et Sandwich.
+Analyse la photo que je t'envoie en respectant les règles de la théorie. 
 
-Decision rules (in this order):
-1) If the image contains humans, with their faces partially or totally visible on first plan:
-  - If there are two or more distinct people -> "ravioli-salad".
-  - If there is exactly one person -> "ravioli".
-2) If the image does NOT primarily depict food or humans (e.g., landscape, desk, computer, empty table, random objects) -> "other".
-3) Otherwise classify the food:
-  - "soup": food mainly immersed in broth/liquid.
-  - "sandwich": food inside or between a bread-like container/wrap.
-  - "salad": everything else.
+J'ai besoin que ta reponse soit formulé en un mot.
+Lorsqu'il s'agit de nourriture. Toute nourriture doit être classée dans une de ces catégories (uniquement):
+- "soup" : Aliment contenu dans un récipient, avec un liquide ou une texture semi-liquide (mais pas nécessairement chaud), où les ingrédients flottent ou sont mélangés dans une base fluide. Exemples : Soupe classique, bouillon, céréales dans du lait, glace fondue, smoothie, ramen. Critère clé : Tout est rassemblé dans un contenant et mangé principalement à la cuillère (ou aspiré).
+-"salad" :Mélange libre d’éléments distincts, souvent liés par une sauce ou un assaisonnement, mais non enfermés dans un contenant comestible et sans liquide couvrant entièrement. Exemples : Salade de légumes, poke bowl, carpaccio, muesli sec, pâtes froides, riz sauté, taboulé. Critère clé : Les composants sont séparés et visibles, et on les mélange à volonté.
+-"sandwich" : Aliments enfermés (partiellement ou totalement) dans un autre aliment qui sert de contenant comestible, souvent pour être tenus à la main. Exemples : Sandwich classique, burger, taco, wrap, ravioli, sushi, calzone. Critère clé : L’enveloppe (pain, pâte, feuille, algue, etc.) retient le contenu.
+Pour des photos d'humains, si il y a un humain en évidence (sujet principale) sur la photo, ta réponse doit être "ravioli". Si il y a plusieurs humains sur la photo, ta réponse doit etre "ravioli-salad".
+Le terme ravioli est exclusivement réservé aux humains et ne doit en aucun cas être appliqué à de la nourriture.
 
-Important:
-- Output ONLY one of the allowed labels, with no extra words or punctuation.
+Pour tout ce qui ne rentre pas dans ces catégories, que ce n'est pas de la nourriture, ta réponse doit être "other".
 `;
     // assistant IsSaladBot : asst_ggPvexhvF1xhHtLfBjsJy93f
     // Check how to use the assistant: https://platform.openai.com/docs/guides/assistants
