@@ -14,15 +14,13 @@ const { checkBody } = require("../modules/checkBody");
 const { recomputeUserTeam } = require("../modules/team");
 
 router.post("/createPost", async (req, res) => {
-  // console.log("MON IMAGE LA", req.body);
-
   try {
     let prompt = `
 Look at the image and output EXACTLY ONE of these labels:
 "soup", "salad", "sandwich", "ravioli", "ravioli-salad", "other".
 
 Decision rules (in this order):
-1) If the image contains humans:
+1) If the image contains humans, with their faces partially or totally visible on first plan:
   - If there are two or more distinct people -> "ravioli-salad".
   - If there is exactly one person -> "ravioli".
 2) If the image does NOT primarily depict food or humans (e.g., landscape, desk, computer, empty table, random objects) -> "other".
@@ -34,6 +32,9 @@ Decision rules (in this order):
 Important:
 - Output ONLY one of the allowed labels, with no extra words or punctuation.
 `;
+    // assistant IsSaladBot : asst_ggPvexhvF1xhHtLfBjsJy93f
+    // Check how to use the assistant: https://platform.openai.com/docs/guides/assistants
+
     // Try to make this shorter from here...
     if (!checkBody(req.body, ["token"])) {
       console.log("Missing token in request body");
@@ -156,11 +157,9 @@ Important:
 
 router.get("/getPosts", async (req, res) => {
   try {
-    const userToken = req.headers.authorization?.split(" ")[1] || null;
+    const userToken = req.headers.authorization?.split(" ")[1] || undefined;
+    console.log("User token:", userToken);
     const user = await User.findOne({ token: userToken });
-    // .populate({
-    //   path: "friendsList",
-    // });
 
     if (!user) {
       return res.status(401).json({ result: false, error: "Invalid token" });
@@ -169,8 +168,7 @@ router.get("/getPosts", async (req, res) => {
     // On garde juste les posts de mes amis et de moi-même
     const friendsAndMe = [...user.friendsList, user._id];
 
-    // for (let friend of friendsAndMe) {
-    //   console.log(friend);
+    // Récupération des posts de mes amis et de moi-même
     const posts = await Post.find({ ownerPost: { $in: friendsAndMe } })
       .sort({ date: -1 })
       .populate({
@@ -281,7 +279,6 @@ router.delete("/deletePost", async (req, res) => {
       { postsList: postToDelete._id },
       { $pull: { postsList: postToDelete._id } }
     );
-    console.log("Post ID removed from users' postsList");
 
     // 3) Supprimer le post
     await Post.deleteOne({ _id: postToDelete._id });
@@ -347,8 +344,6 @@ router.put("/likePost", async (req, res) => {
       return res.status(404).json({ result: false, error: "User not found" });
     }
 
-    console.log("User found:", user._id);
-
     const post = await Post.findOne({ photoUrl });
 
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
@@ -399,8 +394,6 @@ router.put("/dislikePost", async (req, res) => {
       return res.status(404).json({ result: false, error: "User not found" });
     }
 
-    console.log("User found:", user._id);
-
     const post = await Post.findOne({ photoUrl });
 
     // Étape 2 : Ajouter son _id dans le tableau like (en évitant les doublons)
@@ -442,8 +435,7 @@ router.delete("/deleteAllFromOne", async (req, res) => {
     }
 
     const user = await User.findOne({ token });
-    // const comment = { ownerComment: user._id}
-
+    // First delete all comments made by the user
     const post = await Post.find();
     const userComments = post.filter((post) =>
       post.comments.some((comment) => comment.ownerComment.equals(user._id))
@@ -456,6 +448,7 @@ router.delete("/deleteAllFromOne", async (req, res) => {
         );
       }
     }
+    // Then delete all posts made by the user
     await Post.deleteMany({ ownerPost: user._id });
 
     res.json({
@@ -503,7 +496,7 @@ router.post("/addComment", async (req, res) => {
       }) // Récupération des noms d'utilisateurs, avatars et teams des commentaires
       .lean();
 
-    // tri des comments (au cas où)
+    // tri des commentaires par date décroissante
     if (Array.isArray(updatedPost?.comments)) {
       updatedPost.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
