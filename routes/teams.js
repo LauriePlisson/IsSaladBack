@@ -29,7 +29,7 @@ router.post("/", (req, res) => {
 
 router.get("/", (req, res) => {
   Team.find().then((data) => {
-    res.json({ teams: data });
+    res.json({ result: true, teams: data });
   });
 });
 

@@ -16,8 +16,9 @@
     "express-fileupload": "^1.5.2",
     "mongoose": "^8.17.0",
     "morgan": "~1.9.1",
+    "openai": "^5.11.0",
+    "supertest": "^7.1.4",
     "uid2": "^1.0.0",
-    "uniqid": "^5.4.0",
-    "openai": "^5.11.0"
+    "uniqid": "^5.4.0"
   }
 }
