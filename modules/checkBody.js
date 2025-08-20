@@ -1,3 +1,4 @@
+// Function to validate that required fields exist and are not empty in request body
 function checkBody(body, keys) {
   let isValid = true;
 

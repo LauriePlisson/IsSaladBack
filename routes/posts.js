@@ -13,6 +13,7 @@ const Post = require("../models/post");
 const { checkBody } = require("../modules/checkBody");
 const { recomputeUserTeam } = require("../modules/team");
 
+// Route to create a new post with photo upload and AI-powered food classification
 router.post("/createPost", async (req, res) => {
   try {
     let prompt = `
@@ -152,6 +153,7 @@ Pour tout ce qui ne rentre pas dans ces catégories, que ce n'est pas de la nour
   }
 });
 
+// Route to get posts from user's friends and their own posts
 router.get("/getPosts", async (req, res) => {
   try {
     const userToken = req.headers.authorization?.split(" ")[1] || undefined;
@@ -211,6 +213,7 @@ router.get("/getPosts", async (req, res) => {
   }
 });
 
+// Route to get all posts by a specific username
 router.get("/getPostsByUsername/:username", async (req, res) => {
   try {
     const { username } = req.params;
@@ -256,6 +259,7 @@ router.get("/getPostsByUsername/:username", async (req, res) => {
   }
 });
 
+// Route to delete a post and remove it from user's posts list
 router.delete("/deletePost", async (req, res) => {
   try {
     const { token, photoUrl } = req.body;
@@ -300,6 +304,7 @@ router.delete("/deletePost", async (req, res) => {
   }
 });
 
+// Route to update the description of a specific post
 router.put("/updateDescription", async (req, res) => {
   try {
     const { token, photoUrl, description } = req.body;
@@ -324,6 +329,7 @@ router.put("/updateDescription", async (req, res) => {
   }
 });
 
+// Route to handle liking a post (toggle like/dislike functionality)
 router.put("/likePost", async (req, res) => {
   try {
     const { token, photoUrl } = req.body;
@@ -374,6 +380,7 @@ router.put("/likePost", async (req, res) => {
   }
 });
 
+// Route to handle disliking a post (toggle like/dislike functionality)
 router.put("/dislikePost", async (req, res) => {
   try {
     const { token, photoUrl } = req.body;
@@ -423,6 +430,7 @@ router.put("/dislikePost", async (req, res) => {
   }
 });
 
+// Route to delete all posts and comments created by a specific user
 router.delete("/deleteAllFromOne", async (req, res) => {
   try {
     const { token } = req.body;
@@ -458,6 +466,7 @@ router.delete("/deleteAllFromOne", async (req, res) => {
   }
 });
 
+// Route to add a comment to a specific post
 router.post("/addComment", async (req, res) => {
   try {
     const { token, postId, text } = req.body;

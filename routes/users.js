@@ -10,7 +10,7 @@ const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const uniqid = require("uniqid");
 
-// signUp inscription
+// Route to handle user registration with username, email, and password
 router.post("/signup", (req, res) => {
   try {
     checkBody(req.body, ["username", "password", "mail"]);
@@ -48,7 +48,7 @@ router.post("/signup", (req, res) => {
   }
 });
 
-//signin connexion
+// Route to handle user authentication with username and password
 router.post("/signin", (req, res) => {
   try {
     checkBody(req.body, ["username", "password"]);
@@ -94,7 +94,7 @@ router.post("/signin", (req, res) => {
   }
 });
 
-//route signIn token
+// Route to authenticate user using stored token from previous login
 router.post("/signinToken", (req, res) => {
   try {
     checkBody(req.body, ["token"]);
@@ -131,7 +131,7 @@ router.post("/signinToken", (req, res) => {
   }
 });
 
-//suppression compte
+// Route to delete a user account permanently
 router.delete("/", (req, res) => {
   try {
     User.deleteOne({ token: req.body.token }).then((data) => {
@@ -154,7 +154,7 @@ router.delete("/", (req, res) => {
   }
 });
 
-//get all users
+// Route to fetch all users with their basic information and team data
 router.get("/", (req, res) => {
   try {
     // console.log("Fetching all users");
@@ -181,7 +181,7 @@ router.get("/", (req, res) => {
   }
 });
 
-//put modif username
+// Route to update a user's username if the new username is available
 router.put("/changeUsername/:username", (req, res) => {
   try {
     checkBody(req.params, ["username"]);
@@ -213,7 +213,7 @@ router.put("/changeUsername/:username", (req, res) => {
   }
 });
 
-//put modif description
+// Route to update a user's profile description
 router.put("/changeDescription", (req, res) => {
   try {
     User.updateOne(
@@ -237,7 +237,7 @@ router.put("/changeDescription", (req, res) => {
   }
 });
 
-//put modif avatar
+// Route to upload and update a user's avatar image via Cloudinary
 router.put("/changeAvatar", async (req, res) => {
   try {
     const avatarPath = `./tmp/${uniqid()}.jpg`;
@@ -274,8 +274,7 @@ router.put("/changeAvatar", async (req, res) => {
   }
 });
 
-//modif password
-
+// Route to change user password after verifying current password
 router.put("/changePassword", (req, res) => {
   try {
     checkBody(req.body, ["newpassword", "password"]);
@@ -302,7 +301,7 @@ router.put("/changePassword", (req, res) => {
   }
 });
 
-//faire ajout suppression ami
+// Route to add or remove a friend from user's friend list
 router.put("/addFriend", (req, res) => {
   try {
     User.findOne({ token: req.body.token }).then((data) => {
@@ -368,7 +367,7 @@ router.put("/addFriend", (req, res) => {
   }
 });
 
-//get one user
+// Route to get a specific user's profile information and posts
 router.get("/:username", (req, res) => {
   const queryRegex = new RegExp("^" + req.params.username + "$", "i");
 

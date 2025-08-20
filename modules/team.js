@@ -4,7 +4,7 @@ const Post = require("../models/post");
 const Team = require("../models/teams");
 const User = require("../models/users");
 
-// 1) Compte les posts par "result" pour un user
+// Function to count user's posts by classification result (soup, salad, sandwich, etc.)
 async function countUserResults(userId) {
   const rows = await Post.aggregate([
     { $match: { ownerPost: new mongoose.Types.ObjectId(userId) } },
@@ -20,14 +20,14 @@ async function countUserResults(userId) {
   return counts;
 }
 
-// 2) Choisit l'équipe gagnante (plus de posts)
+// Function to determine winning team based on post counts
 function pickTeam(counts) {
   // en cas d’égalité, on garde l’ordre soup > salad > sandwich, change si tu veux
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   return entries[0] && entries[0][1] > 0 ? entries[0][0] : null;
 }
 
-// 3) Met à jour l’appartenance du user dans la collection teams
+// Function to update user's team membership in the teams collection
 async function setUserTeam(userId, teamName) {
   // enlève le user de toutes les équipes
   await Team.updateMany({ userList: userId }, { $pull: { userList: userId } });
@@ -40,7 +40,7 @@ async function setUserTeam(userId, teamName) {
   }
 }
 
-// 4) Fonction tout-en-un à appeler depuis tes routes
+// Main function to recalculate and update user's team based on their post classifications
 async function recomputeUserTeam(userId) {
   // 1) Compter les posts de l’utilisateur par résultat
   const counts = await Post.aggregate([

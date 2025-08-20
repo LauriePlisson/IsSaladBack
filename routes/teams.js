@@ -4,7 +4,7 @@ const User = require("../models/users");
 const Team = require("../models/teams");
 const { checkBody } = require("../modules/checkBody");
 
-//post creer nouvelle team
+// Route to create a new team with unique name and description
 router.post("/", (req, res) => {
   Team.findOne({ name: req.body.name }).then((data) => {
     if (data === null) {
@@ -25,16 +25,14 @@ router.post("/", (req, res) => {
   });
 });
 
-//get pour avoir les teams
-
+// Route to get all available teams
 router.get("/", (req, res) => {
   Team.find().then((data) => {
     res.json({ result: true, teams: data });
   });
 });
 
-//put pour update userList AFINIR!!!!!!
-
+// Route to add user to a team and remove from previous team
 router.put("/add", (req, res) => {
   User.findOne({ token: req.body.token })
   .populate("team")
@@ -69,7 +67,7 @@ router.put("/add", (req, res) => {
   });
 });
 
-//get one pour avoir une team
+// Route to get specific team information by name
 router.get("/:name", (req, res) => {
   Team.findOne({ name: req.params.name }).then((data) => {
     if (data) {

@@ -18,7 +18,7 @@
 // 	expect(fetch).toHaveBeenCalledWith('/teams/');
 // });
 
-const app = require("./app");
+const app = require("../app");
 const request = require("supertest");
 
 it("GET/teams", async () => {
